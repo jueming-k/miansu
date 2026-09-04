@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-build" content="v1.9.21">
+<title>改简历 · 面溯</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  .io-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+  @media(max-width:900px){.io-grid{grid-template-columns:1fr}}
+  .out{font-size:14px;line-height:1.85;color:var(--tx2);min-height:160px;
+       white-space:pre-wrap;word-break:break-word}
+</style>
+  <link rel="icon" href="favicon.svg">
+</head>
+<body>
+
+<div data-nav>
+  <nav class="navbar">
+    <div class="nav-in">
+      <a class="brand" href="index.html">
+        <div class="logo serif">溯</div>
+        <div><div class="brand-name serif">面溯</div><span class="brand-sub">INTERVIEW REVIEW</span></div>
+      </a>
+      <div class="menu">
+        <a href="index.html">首页</a>
+        <a href="records.html">面试记录</a>
+        <a href="detail.html">录音转写</a>
+        <a href="review.html">面试复盘</a>
+        <a href="resume.html">改简历</a>
+        <a href="about.html">关于项目</a>
+        <a href="settings.html">设置</a>
+      </div>
+      <div class="nav-right">
+        <a class="avatar-btn" href="profile.html" title="登录 / 个人中心">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<div id="main" class="wrap" style="padding:48px 32px 20px">
+  <div class="row-between wrap-flex mb-24">
+    <div>
+      <span class="lbl">Resume Rewrite</span>
+      <h1 style="font-size:clamp(28px,4vw,40px);margin:8px 0 6px">改简历</h1>
+      <p class="small muted" style="margin:0">JD + 原简历 → 改写版 + 推理链（为什么这么改）。</p>
+    </div>
+    <button class="btn btn-primary" id="btnGo">✦ 开始改写</button>
+  </div>
+
+  <!-- 输入 -->
+  <div class="io-grid fade" style="margin-bottom:20px">
+    <div class="glass" style="padding:26px 28px">
+      <div class="row-between mb-16">
+        <h2 style="font-size:18px;margin:0">目标 JD</h2>
+        <span class="tag">输入</span>
+      </div>
+      <textarea class="textarea" id="jd" style="min-height:220px" placeholder="粘贴目标岗位的 JD，越完整匹配越准…"></textarea>
+      <div class="row wrap-flex mt-16" style="gap:8px">
+        <button class="btn btn-ghost btn-sm" data-tpl="jd">填入示例 JD</button>
+        <button class="btn btn-ghost btn-sm" id="btnClearJd">清空</button>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:26px 28px">
+      <div class="row-between mb-16">
+        <h2 style="font-size:18px;margin:0">原简历 / 原经历</h2>
+        <span class="tag">输入</span>
+      </div>
+      <textarea class="textarea" id="resume" style="min-height:220px" placeholder="粘贴简历中需要改写的段落，或原始经历描述…"></textarea>
+      <div class="row wrap-flex mt-16" style="gap:8px">
+        <button class="btn btn-ghost btn-sm" data-tpl="resume">填入示例简历</button>
+        <button class="btn btn-ghost btn-sm" id="btnClearR">清空</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 输出 -->
+  <div class="io-grid fade">
+    <div class="glass" style="padding:26px 28px">
+      <div class="row-between mb-16">
+        <div class="ai-head" style="color:var(--accent)">
+          <span class="ai-ico" style="background:var(--g-mint)">✦</span>改写版
+        </div>
+        <button class="btn btn-ghost btn-sm" data-copy="outNew">复制</button>
+      </div>
+      <div class="out" id="outNew"><span class="muted2">填入 JD 与原简历后点击右上角「开始改写」。</span></div>
+    </div>
+
+    <div class="glass" style="padding:26px 28px">
+      <div class="row-between mb-16">
+        <div class="ai-head" style="color:var(--accent)">
+          <span class="ai-ico" style="background:var(--g-aurora)">✦</span>推理链
+        </div>
+        <button class="btn btn-ghost btn-sm" data-copy="outWhy">复制</button>
+      </div>
+      <div class="out" id="outWhy"><span class="muted2">为什么这么改：映射了 JD 的哪些要求、为什么删/换哪些词。</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <div class="foot-in">
+    <span>面溯 · 简历内容仅在本机处理</span>
+    <span class="mono">LLM 接口已留位</span>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+App.mount('resume');
+
+const TPL = {
+  jd: `【AI 产品实习生 · 内容生产方向】
+1. 参与 AIGC 内容生产平台的产品设计，负责需求梳理与 PRD 撰写；
+2. 与算法团队协作，推进 RAG / Agent 能力在业务场景落地；
+3. 熟悉大模型能力边界，能独立完成模型选型与效果评估；
+4. 有 RAG、Agent 相关项目经验者优先。`,
+  resume: `项目：保险条款知识库智能问答系统
+负责搭建保险条款的问答系统，用大模型做问答。我参与了需求分析和部分文档的编写，
+也跟进了一些模型效果的测试工作。系统上线后用户反馈还不错。`
+};
+
+$$('[data-tpl]').forEach(b => b.onclick = () => {
+  const k = b.dataset.tpl;
+  $(k === 'jd' ? '#jd' : '#resume').value = TPL[k];
+  Toast.show('已填入示例', 'ok');
+});
+$('#btnClearJd').onclick = () => $('#jd').value = '';
+$('#btnClearR').onclick = () => $('#resume').value = '';
+
+/* ══════ 改写 ══════ */
+$('#btnGo').onclick = async e => {
+  const btn = e.currentTarget;
+  const jd = $('#jd').value.trim(), resume = $('#resume').value.trim();
+  if (!jd || !resume) { Toast.show('请同时填写 JD 与原简历', 'err'); return; }
+
+  btn.disabled = true; btn.textContent = '改写中…';
+  const boxNew = $('#outNew'), boxWhy = $('#outWhy');
+  boxNew.innerHTML = '<span class="caret"></span>';
+  boxWhy.innerHTML = '<span class="muted2">等待改写完成…</span>';
+
+  const rNew = LLM.makeRenderer(boxNew);
+  try {
+    await LLM.chat([
+      { role: 'system', content: '你是资深产品经理兼简历顾问。基于 JD 重写简历段落：动词开头、量化结果、贴合 JD 关键词，不编造事实。只输出改写后的正文。' },
+      { role: 'user', content: `目标 JD：\n${jd}\n\n原文：\n${resume}` }
+    ], { onToken: c => rNew.push(c) });
+    rNew.done();
+
+    boxWhy.innerHTML = '<span class="caret"></span>';
+    const rWhy = LLM.makeRenderer(boxWhy);
+    await LLM.chat([
+      { role: 'system', content: '你是简历顾问。解释上面这次改写：逐条说明映射了 JD 的哪些要求、为什么替换某些词、为什么删掉某些内容。用 Markdown。' },
+      { role: 'user', content: `JD：\n${jd}\n\n原文：\n${resume}\n\n改写版：\n${boxNew.innerText}` }
+    ], { onToken: c => rWhy.push(c) });
+    rWhy.done();
+    Toast.show('改写完成', 'ok');
+  } catch (err) {
+    boxNew.innerHTML = `<span style="color:var(--bad)">生成失败：${esc(err.message)}</span>`;
+    Toast.show(err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '✦ 重新改写';
+  }
+};
+
+/* ══════ 复制 ══════ */
+$$('[data-copy]').forEach(b => b.onclick = async () => {
+  const txt = $('#' + b.dataset.copy).innerText.trim();
+  try { await navigator.clipboard.writeText(txt); Toast.show('已复制到剪贴板', 'ok'); }
+  catch { Toast.show('复制失败，请手动选择', 'err'); }
+});
+</script>
+</body>
+</html>
