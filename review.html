@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-build" content="v1.9.21">
+<title>面试复盘 · 面溯</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  .rv-body{padding-top:18px}
+  .rv-fields{display:grid;grid-template-columns:repeat(2,1fr);gap:0 16px}
+  .rv-fields .field{margin-bottom:14px}
+  @media(max-width:720px){.rv-fields{grid-template-columns:1fr}}
+</style>
+  <link rel="icon" href="favicon.svg">
+</head>
+<body>
+
+<div data-nav>
+  <nav class="navbar">
+    <div class="nav-in">
+      <a class="brand" href="index.html">
+        <div class="logo serif">溯</div>
+        <div><div class="brand-name serif">面溯</div><span class="brand-sub">INTERVIEW REVIEW</span></div>
+      </a>
+      <div class="menu">
+        <a href="index.html">首页</a>
+        <a href="records.html">面试记录</a>
+        <a href="detail.html">录音转写</a>
+        <a href="review.html">面试复盘</a>
+        <a href="resume.html">改简历</a>
+        <a href="about.html">关于项目</a>
+        <a href="settings.html">设置</a>
+      </div>
+      <div class="nav-right">
+        <a class="avatar-btn" href="profile.html" title="登录 / 个人中心">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<div id="main" class="wrap" style="padding:48px 32px 20px">
+  <div class="row-between wrap-flex mb-24">
+    <div>
+      <span class="lbl">Review · 6 Modules</span>
+      <h1 style="font-size:clamp(28px,4vw,40px);margin:8px 0 6px">面试复盘</h1>
+      <p class="small muted" style="margin:0">结构化复盘表。AI 预填知识漏洞与下一步，其余由你补充。</p>
+    </div>
+    <div class="row" style="gap:10px">
+      <button class="btn btn-ghost btn-sm" id="btnExpand">全部展开</button>
+      <button class="btn btn-primary btn-sm" id="btnAI">✦ AI 预填</button>
+      <button class="btn btn-primary btn-sm" id="btnSave">保存复盘</button>
+    </div>
+  </div>
+
+  <!-- 关联 -->
+  <div class="glass fade" style="padding:20px 26px;margin-bottom:20px">
+    <div class="row wrap-flex" style="gap:14px">
+      <div style="flex:1;min-width:220px">
+        <label class="field-l">关联面试记录</label>
+        <select class="select" id="selJob"></select>
+      </div>
+      <div style="flex:0 0 auto;align-self:flex-end">
+        <span class="tag" id="saveTag">未保存</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="modules"></div>
+</div>
+
+<div class="foot">
+  <div class="foot-in">
+    <span>面溯 · 复盘数据存于本地浏览器</span>
+    <span class="mono">Store.reviews</span>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+App.mount('review');
+
+/* ══════ 6 模块定义 ══════ */
+const MODULES = [
+  { n: 1, t: '当场基础信息', src: '面试记录带入 + 补填', grad: 'var(--g-aurora)',
+    fields: [
+      ['interviewer', '面试官角色', '如 业务负责人 / HR / 未来直属 leader'],
+      ['duration', '面试时长', '如 45 分钟'],
+      ['atmosphere', '面试氛围', '如 偏压力面 / 轻松聊天 / 追问细节', 2]
+    ]},
+  { n: 2, t: '问题与作答记录', src: '转写结果预填 · 可编辑', grad: 'var(--g-cool)',
+    fields: [
+      ['transcript', '逐字稿 / 关键问答', '可从「录音转写」页自动带入', 2],
+      ['stuck', '卡壳 / 未答上的问题', '逐条列出，这是最值得复盘的素材', 2]
+    ]},
+  { n: 3, t: '核心深度复盘', src: 'AI 映射', grad: 'var(--g-warm)',
+    fields: [
+      ['point', '考察点', '这道题到底在考察什么能力'],
+      ['strength', '自身优势', 'AI 由「亮点」映射'],
+      ['gap', '作答漏洞', 'AI 由「改进建议」映射'],
+      ['better', '优化标准答案', '重写一版更好的回答', 2]
+    ]},
+  { n: 4, t: '面试官意向信号', src: '用户自填', grad: 'var(--g-mint)',
+    fields: [
+      ['positive', '积极信号', '如 主动介绍团队、追问入职时间'],
+      ['negative', '消极信号', '如 提前结束、未问反问'],
+      ['judge', '整体判断', '如 大概率通过 / 待定 / 不乐观', 2]
+    ]},
+  { n: 5, t: '问题与短板', src: 'AI 预填知识漏洞', grad: 'var(--g-aurora)',
+    fields: [
+      ['knowledge', '知识漏洞', 'AI 由「知识盲区」映射'],
+      ['expression', '表达问题', '如 结论前置不够、缺少数据支撑'],
+      ['other', '其他', '任何值得记下的问题', 2]
+    ]},
+  { n: 6, t: '后续行动', src: 'AI 预填下一步', grad: 'var(--g-cool)',
+    fields: [
+      ['next', '下一步', 'AI 由「下一步」映射', 2],
+      ['thanks', '感谢消息', '24 小时内发送的跟进话术', 2],
+      ['wrongbook', '错题本 / 查漏补缺', '归入待复习清单', 2]
+    ]}
+];
+
+const params = new URLSearchParams(location.search);
+let curJob = params.get('job');
+let expanded = new Set([1, 2, 3]);
+
+/* ══════ 渲染 ══════ */
+function renderModules() {
+  $('#modules').innerHTML = MODULES.map(m => {
+    const open = expanded.has(m.n);
+    return `<div class="rv fade">
+      <div class="rv-h" data-toggle="${m.n}">
+        <div class="rv-n" style="background:${m.grad}">${m.n}</div>
+        <div class="rv-t">${m.t}</div>
+        <span class="rv-src">${m.src}</span>
+        <span class="tag" data-badge="${m.n}">${open ? '收起' : '展开'}</span>
+      </div>
+      <div class="rv-body" data-body="${m.n}" style="display:${open ? 'block' : 'none'}">
+        <div class="rv-fields">
+          ${m.fields.map(([k, label, ph, span]) => `
+            <div class="field" style="grid-column:${span === 2 ? '1 / -1' : 'auto'}">
+              <label class="field-l">${label}</label>
+              <textarea class="textarea" data-f="${k}" placeholder="${ph}" style="min-height:${span === 2 ? '110px' : '78px'}"></textarea>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  $$('[data-toggle]').forEach(h => h.onclick = () => {
+    const n = +h.dataset.toggle;
+    expanded.has(n) ? expanded.delete(n) : expanded.add(n);
+    const body = $(`[data-body="${n}"]`);
+    body.style.display = body.style.display === 'none' ? 'block' : 'none';
+    $(`[data-badge="${n}"]`).textContent = body.style.display === 'none' ? '展开' : '收起';
+  });
+}
+
+function fillJobs() {
+  const jobs = Store.jobs.all();
+  if (!curJob && jobs.length) curJob = jobs[0].id;
+  $('#selJob').innerHTML = jobs.length
+    ? jobs.map(j => `<option value="${j.id}"${j.id === curJob ? ' selected' : ''}>${esc(j.company)} · ${esc(j.role)} · ${esc(j.stage)}</option>`).join('')
+    : '<option>（暂无记录，请先到「面试记录」添加）</option>';
+  loadSaved();
+}
+
+/* ══════ 载入已保存数据 ══════ */
+function loadSaved() {
+  $$('[data-f]').forEach(el => el.value = '');
+  const saved = Store.reviews.get(curJob);
+  if (saved?.review) {
+    Object.entries(saved.review).forEach(([k, v]) => {
+      const el = $(`[data-f="${k}"]`);
+      if (el) el.value = v || '';
+    });
+    $('#saveTag').textContent = '已保存 · ' + (saved.updatedAt || '');
+    $('#saveTag').className = 'tag tag-ok';
+  } else {
+    $('#saveTag').textContent = '未保存';
+    $('#saveTag').className = 'tag';
+  }
+
+  /* 逐字稿从转写结果带入 */
+  const t = saved?.transcript;
+  if (t && !$('[data-f="transcript"]').value) {
+    $('[data-f="transcript"]').value = t.map(l => `${l.who}：${l.text}`).join('\n');
+  }
+}
+
+/* ══════ 保存 ══════ */
+$('#btnSave').onclick = () => {
+  if (!curJob) { Toast.show('请先选择面试记录', 'err'); return; }
+  const data = {};
+  $$('[data-f]').forEach(el => data[el.dataset.f] = el.value.trim());
+  Store.reviews.set(curJob, { review: data });
+  $('#saveTag').textContent = '已保存 · ' + today();
+  $('#saveTag').className = 'tag tag-ok';
+  Toast.show('复盘已保存', 'ok');
+};
+
+/* ══════ AI 预填 ══════ */
+$('#btnAI').onclick = async e => {
+  const btn = e.currentTarget;
+  const transcript = $('[data-f="transcript"]')?.value.trim();
+  const stuck = $('[data-f="stuck"]')?.value.trim();
+  if (!transcript && !stuck) {
+    Toast.show('请先填写逐字稿或卡壳问题（可到「录音转写」页生成）', 'err');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = '预填中…';
+  expanded.add(3); expanded.add(5); expanded.add(6);
+
+  let raw = '';
+  try {
+    await LLM.chat(
+      [
+        { role: 'system', content: '你是面试复盘助手。把逐字稿总结为四个部分，每部分用二级标题开章，格式严格为：`## 一、亮点`、`## 二、知识盲区`、`## 三、改进建议`、`## 四、下一步`（数字用一二三四）。不要加前言或结尾，每部分 2-3 条，具体不空泛。' },
+        { role: 'user', content: `逐字稿：\n${transcript}\n\n我卡壳的问题：\n${stuck || '（未填写）'}` }
+      ],
+      { onToken: c => { raw += c; } }
+    );
+
+    const mapped = mapSections(raw);
+    let n = 0;
+    Object.entries(mapped).forEach(([field, val]) => {
+      const el = $(`[data-f="${field}"]`);
+      if (el && !el.value.trim()) { el.value = val; n++; }
+      if (el) {
+        el.style.transition = 'background .6s';
+        el.style.background = 'var(--accent-soft)';
+        setTimeout(() => el.style.background = '', 900);
+      }
+    });
+    [3, 5, 6].forEach(m => { $(`[data-body="${m}"]`).style.display = 'block'; $(`[data-badge="${m}"]`).textContent = '收起'; });
+    Toast.show(`已预填 ${n} 个字段，请校对后保存`, 'ok');
+  } catch (err) {
+    Toast.show(err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '✦ AI 预填';
+  }
+};
+
+/* 按 **标题** / ## 标题 分段 → 映射到字段（映射规则见需求文档 3.3）
+   ⚠ v1.9.20 前只认「**亮点**」这一种精确格式，而真模型输出的是
+   「## 一、亮点」→ 匹配 0 个字段 → 弹窗说已生成、页面却一片空白。
+   现在兼容：## 标题 / **加粗**（可带序号、可带冒号）/「一、亮点：」裸行，
+   并剥掉「一、/ 1. / （一）」等序号前缀后再查关键词。 */
+function mapSections(text) {
+  const out = {};
+  const KEY = {
+    '亮点': 'strength', '优势': 'strength',
+    '知识盲区': 'knowledge', '知识漏洞': 'knowledge',
+    '改进建议': 'better', '优化标准答案': 'better',
+    '下一步': 'next'
+  };
+  let cur = null;
+  const titleOf = (line) => {
+    const t = line.trim();
+    if (!t) return null;
+    const m = t.match(/^#{1,6}\s*(.+?)\s*#*\s*$/)   // ## 一、亮点 / ### 亮点
+          || t.match(/^\*\*(.+?)\*\*/)               // **一、亮点**（后面可跟冒号）
+          || t.match(/^(.{1,14}?)[：:]\s*$/);        // 「一、亮点：」/「亮点：」整行
+    let s = m ? m[1] : t;
+    s = s.replace(/^[（(]?\s*[一二三四五六七八九十0-9]{1,3}\s*[)）、.．]\s*/, '')  // 剥序号
+         .replace(/\s*[：:]\s*$/, '')
+         .trim();
+    return KEY[s] || null;   // 只有命中关键词才算标题，防止把正文误判成标题
+  };
+  text.split('\n').forEach(line => {
+    const title = titleOf(line);
+    if (title) { cur = title; out[cur] = ''; return; }
+    if (cur && line.trim()) out[cur] += (out[cur] ? '\n' : '') + line.trim().replace(/^[-•*]\s*/, '• ').trim();
+  });
+  return out;
+}
+
+$('#btnExpand').onclick = e => {
+  const all = expanded.size === MODULES.length;
+  expanded = new Set(all ? [] : MODULES.map(m => m.n));
+  MODULES.forEach(m => {
+    $(`[data-body="${m.n}"]`).style.display = expanded.has(m.n) ? 'block' : 'none';
+    $(`[data-badge="${m.n}"]`).textContent = expanded.has(m.n) ? '收起' : '展开';
+  });
+  e.currentTarget.textContent = all ? '全部展开' : '全部收起';
+};
+
+$('#selJob').onchange = e => { curJob = e.target.value; loadSaved(); };
+
+renderModules();
+fillJobs();
+</script>
+</body>
+</html>
