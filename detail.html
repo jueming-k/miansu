@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-build" content="v1.9.21">
+<title>逐字稿 · AI 总结 · 面溯</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  .step-line{flex:0 0 34px}
+  .editable{outline:none;transition:background .2s}
+  .editable:focus{background:var(--accent-soft)}
+  .sum-block{padding:16px 18px;border-radius:16px;background:var(--chip);
+             border:1px solid var(--line);margin-bottom:12px}
+  .sum-h{font-size:12.5px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  /* 来源切换：本地转写 / 粘贴逐字稿 */
+  .seg{display:inline-flex;gap:4px;padding:4px;border-radius:999px;
+       background:var(--chip);border:1px solid var(--line)}
+  .seg-btn{padding:7px 16px;border-radius:999px;border:none;background:transparent;
+           font-size:13px;font-weight:700;color:var(--tx3);cursor:pointer;
+           font-family:inherit;transition:all .2s;white-space:nowrap}
+  .seg-btn:hover{color:var(--tx)}
+  .seg-btn.on{background:var(--card);color:var(--tx);box-shadow:0 2px 8px rgba(15,23,42,.12)}
+  .fmt{font-size:12px;color:var(--tx3);line-height:1.9}
+  .fmt code{background:var(--chip);border:1px solid var(--line);border-radius:6px;
+            padding:1px 6px;font-size:11.5px}
+  .who-toggle{cursor:pointer;user-select:none}
+  .who-toggle:hover{filter:brightness(.94)}
+  .who-s{background:var(--accent-soft);color:var(--tx2);border:1px dashed var(--line)}
+  .who-pick{display:flex;flex-direction:column}
+  .chip{padding:6px 16px;border-radius:999px;border:1px solid var(--line);
+        background:var(--card);font-size:13px;font-weight:700;color:var(--tx3);
+        cursor:pointer;font-family:inherit;transition:all .18s}
+  .chip:hover{color:var(--tx)}
+  .chip-on{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+  <link rel="icon" href="favicon.svg">
+</head>
+<body>
+
+<div data-nav>
+  <nav class="navbar">
+    <div class="nav-in">
+      <a class="brand" href="index.html">
+        <div class="logo serif">溯</div>
+        <div><div class="brand-name serif">面溯</div><span class="brand-sub">INTERVIEW REVIEW</span></div>
+      </a>
+      <div class="menu">
+        <a href="index.html">首页</a>
+        <a href="records.html">面试记录</a>
+        <a href="detail.html">录音转写</a>
+        <a href="review.html">面试复盘</a>
+        <a href="resume.html">改简历</a>
+        <a href="about.html">关于项目</a>
+        <a href="settings.html">设置</a>
+      </div>
+      <div class="nav-right">
+        <a class="avatar-btn" href="profile.html" title="登录 / 个人中心">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<div id="main" class="wrap" style="padding:48px 32px 20px">
+  <div class="mb-24">
+    <span class="lbl">Transcribe</span>
+    <h1 style="font-size:clamp(28px,4vw,40px);margin:8px 0 6px">逐字稿 · AI 总结</h1>
+    <p class="small muted" style="margin:0">两条路任选：<b>直接粘贴逐字稿</b>（推荐，手机录音 App 已自带转写），或<b>上传录音本地转写</b>。产出同一份可编辑逐字稿 → AI 结构化总结。</p>
+  </div>
+
+  <!-- 关联面试 -->
+  <div class="glass fade" style="padding:20px 26px;margin-bottom:20px">
+    <div class="row wrap-flex" style="gap:14px">
+      <div style="flex:1;min-width:220px">
+        <label class="field-l">关联面试记录</label>
+        <select class="select" id="selJob"></select>
+      </div>
+      <div style="flex:0 0 auto;align-self:flex-end">
+        <a class="btn btn-ghost btn-sm" href="records.html">管理记录 →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 状态机 -->
+  <div class="glass fade" style="padding:20px 26px;margin-bottom:20px">
+    <div class="steps" id="steps"></div>
+  </div>
+
+  <!-- 来源区：粘贴逐字稿 / 本地转写 -->
+  <div class="glass fade" style="padding:26px;margin-bottom:20px">
+    <div class="row-between wrap-flex mb-16" style="gap:12px">
+      <div class="seg">
+        <button class="seg-btn on" data-src="text">✍️ 粘贴逐字稿</button>
+        <button class="seg-btn" data-src="audio">🎙️ 本地转写录音</button>
+      </div>
+      <span class="small muted" id="srcHint">手机录音 App 自带转写质量最好，直接贴进来最快</span>
+    </div>
+
+    <!-- 路径 A：粘贴逐字稿 -->
+    <div id="paneText">
+      <textarea class="textarea" id="rawText" style="min-height:190px"
+        placeholder="把手机录音 App / 讯飞 / 飞书妙记导出的逐字稿粘贴到这里…"></textarea>
+      <div class="fmt mt-8" style="margin-top:10px">
+        自动识别说话人：<code>面试官：…</code> <code>[面试官] …</code> <code>00:03 我：…</code>；无标记的行归入上一位说话人。若逐字稿是匿名「说话人1 / 说话人2」标签，粘贴后将<b>自动用 AI 按内容判定</b>各自角色（LIVE 模式）。若整段都无说话人标记，会<b>按对话轮次自动切分为两人</b>（面试官开场），角色点气泡即可校正。
+      </div>
+      <div class="row wrap-flex" style="gap:10px;margin-top:16px">
+        <button class="btn btn-primary btn-sm" id="btnParse">✦ 解析并生成总结</button>
+        <button class="btn btn-ghost btn-sm" id="btnParseOnly" title="只解析为对话气泡，不调 AI">仅解析（不调 AI）</button>
+        <button class="btn btn-ghost btn-sm" id="btnClearText">清空</button>
+      </div>
+    </div>
+
+    <!-- 路径 B：本地转写录音 -->
+    <div id="paneAudio" class="hide">
+      <div class="row wrap-flex mb-16" style="gap:10px;align-items:center">
+        <label class="field-l" style="margin:0">识别模型</label>
+        <select class="select" id="selModel" style="max-width:340px">
+          <option value="small">whisper-small · ~250MB · 中文最准（推荐）</option>
+          <option value="base">whisper-base · ~80MB · 较快但中文一般</option>
+          <option value="tiny">whisper-tiny · ~40MB · 最快但中文较差</option>
+        </select>
+      </div>
+      <div class="drop" id="drop">
+        <div class="drop-ico">🎙️</div>
+        <div class="drop-t">拖入录音文件，或点击选择</div>
+        <div class="drop-s">支持 mp3 / wav / m4a · 转写全程在浏览器本地完成，音频不上传</div>
+        <input type="file" id="file" accept="audio/*" class="hide">
+      </div>
+      <div id="progWrap" class="hide" style="margin-top:18px">
+        <div class="row-between mb-8">
+          <span class="small" style="font-weight:700">本地转写中（首次需下载模型）</span>
+          <span class="small mono muted" id="progTxt">0%</span>
+        </div>
+        <div class="fn-track"><div class="fn-bar" id="progBar" style="width:0%;background:var(--g-cool)"></div></div>
+      </div>
+      <div class="fmt" style="margin-top:12px">
+        本地小模型对中文专有名词识别有限，若结果与录音明显不符，建议改用<b>粘贴逐字稿</b>，或把模型切到 <code>whisper-small</code>。
+      </div>
+    </div>
+  </div>
+
+  <!-- 逐字稿 -->
+  <div class="glass fade hide" id="transBox" style="padding:26px 28px;margin-bottom:20px">
+    <div class="row-between wrap-flex mb-16">
+      <div>
+        <h2 style="font-size:19px;margin:0">逐字稿</h2>
+        <p class="small muted mt-8" style="margin:0">点击正文可直接编辑；上方「说话人角色」面板可指定谁是你、谁是面试官（也可点 AI 自动识别后核对）。建议校对后再总结。</p>
+      </div>
+      <div class="row" style="gap:10px">
+        <button class="btn btn-ghost btn-sm" id="btnSummarize">✦ 生成 AI 总结</button>
+        <button class="btn btn-ghost btn-sm" id="btnSaveT">手动保存</button>
+        <span class="small muted" id="saveHint">关联面试后，逐字稿与总结会自动保存</span>
+      </div>
+    </div>
+    <div id="whoChooser" class="hide" style="margin-bottom:14px;padding:14px 16px;border-radius:12px;background:var(--accent-soft);border:1px solid transparent">
+      <div class="small" style="font-weight:700;margin-bottom:10px">指定说话人角色（你最清楚谁是谁）</div>
+      <div id="whoList" class="row wrap-flex" style="gap:18px"></div>
+      <div class="row wrap-flex" style="gap:10px;margin-top:12px;align-items:center">
+        <button class="btn btn-primary btn-sm" id="btnDetectWho">✦ AI 自动识别</button>
+        <span class="small muted" id="whoHint">拿不准可点 AI 按内容预填，再核对一遍</span>
+      </div>
+    </div>
+    <div id="lines"></div>
+  </div>
+
+  <!-- AI 总结 -->
+  <div class="glass fade hide" id="sumBox" style="padding:26px 28px;margin-bottom:20px">
+    <div class="row-between wrap-flex mb-24">
+      <div>
+        <div class="ai-head" style="color:var(--accent)">
+          <span class="ai-ico" style="background:var(--g-cool)">✦</span>AI 结构化总结
+        </div>
+        <p class="small muted mt-8" style="margin:0">亮点 / 知识盲区 / 改进建议 / 下一步</p>
+      </div>
+      <a class="btn btn-ghost btn-sm" href="review.html">去 6 模块复盘 →</a>
+    </div>
+    <div id="sumThink" class="sum-think" data-n="0"></div>
+    <div id="sumContent"></div>
+  </div>
+</div>
+
+<div class="foot">
+  <div class="foot-in">
+    <span>面溯 · 音频不出浏览器</span>
+    <span class="mono">本地 Whisper · transformers.js</span>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+App.mount('detail');
+
+/* 两条来源路径对应不同步骤机 */
+const STEPS_TEXT  = ['粘贴逐字稿', 'AI 总结', '完成'];
+const STEPS_AUDIO = ['上传录音', '本地转写', 'AI 总结', '完成'];
+let srcMode = 'text';          // 默认「粘贴逐字稿」：质量最高、零等待
+let curStep = 0;
+let transcript = null;
+let speakerRole = {};          // 中立「说话人N」标签 → 最终角色（你指定 / AI 预填）
+
+const steps = () => (srcMode === 'text' ? STEPS_TEXT : STEPS_AUDIO);
+const stepOfSummarize = () => steps().length - 2;  // 「AI 总结」所在索引
+const stepDone = () => steps().length - 1;         // 「完成」所在索引
+
+/* ══════ 关联面试下拉 ══════ */
+const params = new URLSearchParams(location.search);
+const preJob = params.get('job');
+
+function fillJobs() {
+  const jobs = Store.jobs.all();
+  $('#selJob').innerHTML = jobs.length
+    ? jobs.map(j => `<option value="${j.id}"${j.id === preJob ? ' selected' : ''}>${esc(j.company)} · ${esc(j.role)} · ${esc(j.stage)}</option>`).join('')
+    : '<option>（暂无记录，请先到「面试记录」添加）</option>';
+}
+
+function renderSteps() {
+  const S = steps();
+  $('#steps').innerHTML = S.map((s, i) => `
+    <div class="step ${i === curStep ? 'on' : i < curStep ? 'done' : ''}">
+      <div class="step-dot">${i < curStep ? '✓' : i + 1}</div><span>${s}</span>
+    </div>${i < S.length - 1 ? '<div class="step-line"></div>' : ''}`).join('');
+}
+
+/* ══════ 来源切换：粘贴 / 转写 ══════ */
+$$('.seg-btn').forEach(btn => {
+  btn.onclick = () => {
+    srcMode = btn.dataset.src;
+    $$('.seg-btn').forEach(x => x.classList.toggle('on', x === btn));
+    $('#paneText').classList.toggle('hide', srcMode !== 'text');
+    $('#paneAudio').classList.toggle('hide', srcMode !== 'audio');
+    $('#srcHint').textContent = srcMode === 'text'
+      ? '手机录音 App 自带转写质量最好，直接贴进来最快'
+      : '浏览器本地跑 Whisper，音频不出本机，首次需下载模型';
+    // 已有逐字稿则保留进度，否则回到起点
+    curStep = transcript ? stepOfSummarize() : 0;
+    renderSteps();
+  };
+});
+
+/* ══════ 路径 A：粘贴逐字稿 ══════ */
+function saveReview(extra = {}) {
+  const jid = $('#selJob').value;
+  if (!jid || !Store.jobs.get(jid)) return false;
+  Store.reviews.set(jid, { transcript, speakerRole, ...extra });
+  return true;
+}
+
+function loadTranscript(list, okMsg, autoDetect = false) {
+  if (!list.length) { Toast.show('没有解析到内容，请先粘贴逐字稿', 'err'); return false; }
+  transcript = list;
+  speakerRole = {};
+  curStep = stepOfSummarize();
+  renderSteps();
+  renderTranscript();
+  $('#transBox').classList.remove('hide');
+
+  const anon = [...new Set(list.filter(l => l.who.startsWith('说话人')).map(l => l.who))];
+  // 关联面试后自动保存，无需手动点
+  if (saveReview()) $('#saveHint').textContent = '已自动保存';
+  else $('#saveHint').textContent = '选择关联面试后即可自动保存';
+
+  if (autoDetect && anon.length && LLM.mode === 'live') {
+    Toast.show('正在用 AI 识别说话人角色，请稍候核对…', 'info', 1900);
+    detectSpeakers().catch(() => {});
+  } else if (anon.length && LLM.mode !== 'live') {
+    Toast.show('检测到匿名「说话人」标签，请开启 LIVE 或在上方指定角色', 'warn');
+  }
+  return true;
+}
+
+/* 解析入口：带标签→直接识别；完全无标签→按轮次自动切分为两人（角色可能需校正） */
+function buildList(raw) {
+  const list = parseTranscriptText(raw);
+  const distinct = new Set(list.map(l => l.who));
+  if (distinct.size === 1 && distinct.has('我')) {
+    return { list: autoSplitUnlabeled(raw), unlabeled: true };
+  }
+  /* 匿名「说话人 N」（飞书妙记 / 腾讯会议等导出的常见格式）：
+     本地兜底映射为 我 / 面试官，不依赖 AI 识别、不阻塞总结。
+     以往这里保留匿名标签 → doSummarize 判定角色未解决 → 非 live 模式直接 return，
+     用户点完按钮"什么都没发生"。映射后仍可点气泡标签手动校正。 */
+  const anonNames = [...distinct].filter(w => /^说话人\s*\d+$/.test(w));
+  if (anonNames.length) {
+    const map = {};
+    anonNames.sort((a, b) => {
+      const na = parseInt(a.replace(/\D/g, ''), 10) || 0;
+      const nb = parseInt(b.replace(/\D/g, ''), 10) || 0;
+      return na - nb;
+    }).forEach((w, i) => { map[w] = i === 0 ? '我' : '面试官'; });
+    return { list: list.map(l => ({ who: map[l.who] || l.who, text: l.text })), unlabeled: false, remapped: true };
+  }
+  return { list, unlabeled: false };
+}
+
+$('#btnParse').onclick = async () => {
+  // 一键完成：解析 → 串行识别说话人 → AI 总结（避免和 loadTranscript 的 detached 识别并发）
+  const { list, unlabeled } = buildList($('#rawText').value);
+  if (!list.length) { Toast.show('没有解析到内容，请先粘贴逐字稿', 'err'); return; }
+  if (!loadTranscript(list, `已解析 ${list.length} 句`, false)) return;
+  if (unlabeled) Toast.show('未检测到说话人标签，已按对话轮次自动切分为两人，角色请点气泡校正', 'warn');
+  const anon = [...new Set(transcript.filter(l => l.who.startsWith('说话人')).map(l => l.who))];
+  if (anon.length && LLM.mode === 'live') {
+    Toast.show('正在用 AI 识别说话人角色，请稍候…', 'info', 1900);
+    try { await detectSpeakers(); } catch (e) { Toast.show('说话人识别失败：' + e.message, 'err'); }
+  }
+  doSummarize();
+};
+
+$('#btnParseOnly').onclick = () => {
+  // 次入口：只解析、不调 AI（让用户先校对说话人标签）
+  const { list, unlabeled } = buildList($('#rawText').value);
+  if (loadTranscript(list, `已解析 ${list.length} 句，请核对后生成总结`, true)) {
+    if (unlabeled) Toast.show('未检测到说话人标签，已按对话轮次自动切分为两人，角色请点气泡校正', 'warn');
+  }
+};
+
+$('#btnClearText').onclick = () => {
+  $('#rawText').value = '';
+  $('#rawText').focus();
+};
+
+/* ══════ 路径 B：上传录音本地转写 ══════ */
+const drop = $('#drop'), file = $('#file');
+drop.onclick = () => file.click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); handle(e.dataTransfer.files[0]); };
+file.onchange = e => handle(e.target.files[0]);
+
+async function handle(f) {
+  if (!f) return;
+  if (!f.type.startsWith('audio/')) { Toast.show('请选择音频文件', 'err'); return; }
+
+  curStep = 1; renderSteps();
+  $('#progWrap').classList.remove('hide');
+  $('#transBox').classList.add('hide');
+  $('#sumBox').classList.add('hide');
+
+  try {
+    const raw = await ASR.transcribe(f, p => {
+      $('#progBar').style.width = p + '%';
+      $('#progTxt').textContent = p + '%';
+    }, $('#selModel').value);
+    transcript = raw;
+    speakerRole = {};
+    curStep = stepOfSummarize(); renderSteps();
+    renderTranscript(); renderChooser();
+    $('#transBox').classList.remove('hide');
+    if (saveReview()) $('#saveHint').textContent = '已自动保存';
+    else $('#saveHint').textContent = '选择关联面试后即可自动保存';
+    Toast.show('转写完成，请校对后生成总结', 'ok');
+  } catch (err) {
+    Toast.show('转写失败：' + err.message, 'err');
+    curStep = 0; renderSteps();
+  } finally {
+    $('#progWrap').classList.add('hide');
+  }
+}
+
+/* ══════ 逐字稿（聊天框式，可编辑） ══════ */
+function renderTranscript() {
+  $('#lines').innerHTML = transcript.map((l, i) => {
+    const disp = resolveWho(l.who);
+    const side = disp === '我' ? 'me' : (disp === '面试官' ? 'iv' : 'un');
+    const initial = disp === '我' ? '我' : disp === '面试官' ? '面' : disp.replace('说话人', '');
+    return `
+    <div class="chat ${side}">
+      <div class="avatar who-toggle" data-i="${i}" title="点击切换说话人">${esc(initial)}</div>
+      <div class="chat-main">
+        <div class="who-name who-toggle" data-i="${i}">${esc(disp)}</div>
+        <div class="bubble editable" contenteditable="true" data-i="${i}">${esc(l.text)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  $$('#lines .editable').forEach(el => {
+    el.oninput = () => { transcript[+el.dataset.i].text = el.innerText.trim(); };
+  });
+  // 已命名的「我 / 面试官」点击可在两者之间切换；匿名「说话人N」请在上方面板指定
+  $$('#lines .who-toggle').forEach(el => {
+    el.onclick = () => {
+      const i = +el.dataset.i;
+      const cur = transcript[i].who;
+      if (cur.startsWith('说话人')) { Toast.show('请在上方面板指定该说话人的角色', 'warn'); return; }
+      transcript[i].who = cur === '我' ? '面试官' : '我';
+      renderTranscript();
+    };
+  });
+
+  // 含匿名「说话人N」标签时，显示角色指定面板
+  renderChooser();
+}
+
+/* 说话人角色：中立标签 → 最终角色（用户指定或 AI 预填） */
+const resolveWho = (w) => speakerRole[w] || w;
+
+/* AI 总结结构化渲染：把「## 一、亮点 …」式输出切成四个清晰卡片。
+   数字徽章 + 标题 + 要点，分割明显；若模型没用 ## 标题则退回普通排版。 */
+function renderSummary(raw) {
+  const src = (raw || '').trim();
+  if (!/^#{1,6}\s+/m.test(src)) {
+    return `<div class="sum-sec"><div class="sum-sec-bd">${md(src)}</div></div>`;
+  }
+  const CN = ['一', '二', '三', '四', '五', '六', '七', '八'];
+  const all = src.split(/^#{1,6}\s+/m).map(s => s.trim()).filter(Boolean);
+  let intro = '';
+  if (all.length && all[0].indexOf('\n') === -1) intro = all.shift(); // 首块无换行 → 前言
+  return (intro ? `<div class="sum-intro">${md(intro)}</div>` : '')
+    + all.map((b, i) => {
+        const nl = b.indexOf('\n');
+        let title = (nl === -1 ? b : b.slice(0, nl)).replace(/^[一二三四五六七八九十\d]+[.、]\s*/, '').replace(/\*+/g, '').trim();
+        let body = (nl === -1 ? '' : b.slice(nl + 1)).trim();
+        return `<div class="sum-sec">
+          <div class="sum-sec-h"><span class="sum-n">${CN[i] || (i + 1)}</span><span>${esc(title)}</span></div>
+          <div class="sum-sec-bd">${md(body)}</div>
+        </div>`;
+      }).join('');
+}
+
+function renderChooser() {
+  const box = $('#whoChooser');
+  if (!transcript) { box.classList.add('hide'); return; }
+  const anon = [...new Set(transcript.filter(l => l.who.startsWith('说话人')).map(l => l.who))];
+  if (!anon.length) { box.classList.add('hide'); return; }
+  box.classList.remove('hide');
+  $('#whoList').innerHTML = anon.map(label => {
+    const r = speakerRole[label] || '';
+    return `<div class="who-pick">
+      <div class="small muted" style="margin-bottom:4px">${esc(label)}</div>
+      <div class="row" style="gap:6px">
+        <button class="chip ${r === '面试官' ? 'chip-on' : ''}" data-label="${esc(label)}" data-role="面试官">面试官</button>
+        <button class="chip ${r === '我' ? 'chip-on' : ''}" data-label="${esc(label)}" data-role="我">我</button>
+      </div>
+    </div>`;
+  }).join('');
+  $$('#whoList .chip').forEach(c => c.onclick = () => {
+    speakerRole[c.dataset.label] = c.dataset.role;
+    renderChooser(); renderTranscript();
+  });
+}
+
+$('#btnSaveT').onclick = () => {
+  if (saveReview()) { $('#saveHint').textContent = '已手动保存'; Toast.show('逐字稿与总结已保存', 'ok'); }
+  else Toast.show('请先选择有效的面试记录', 'err');
+};
+
+/* ══════ AI 识别说话人（两条路径共用） ══════ */
+async function detectSpeakers() {
+  if (!transcript) return;
+  const anon = [...new Set(transcript.filter(l => l.who.startsWith('说话人')).map(l => l.who))];
+  if (!anon.length) return;
+  // 每个说话人取前 5 条发言作判据（只给 1 条太单薄，AI 容易误判）
+  const samples = anon.map(label => {
+    const lines = transcript.filter(l => l.who === label).map(l => l.text);
+    return { label, text: lines.slice(0, 5).map(t => '· ' + t.slice(0, 160)).join('\n') };
+  });
+  const btn = $('#btnDetectWho');
+  btn.disabled = true; btn.textContent = '识别中…';
+  try {
+    const map = await LLM.identifySpeakers(samples);
+    // 护栏：若 AI 把多个说话人判成同一角色，说明判不准，不采纳，交用户手动
+    const roles = new Set(Object.values(map));
+    if (anon.length > 1 && roles.size < 2) {
+      Toast.show('AI 无法区分两位说话人，请在上方手动指定角色', 'warn');
+    } else {
+      for (const k in map) speakerRole[k] = map[k];
+      Toast.show('AI 已识别，请核对后生成总结', 'ok');
+    }
+  } catch (err) {
+    Toast.show('识别失败：' + err.message + '，请在上方手动指定', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '✦ AI 自动识别';
+    renderChooser(); renderTranscript();
+  }
+}
+$('#btnDetectWho').onclick = detectSpeakers;
+
+/* ══════ AI 总结（两条路径共用） ══════ */
+$('#btnSummarize').onclick = () => doSummarize();
+
+async function doSummarize() {
+  const btn = $('#btnSummarize');
+  if (!transcript) { Toast.show('请先获取逐字稿', 'err'); return; }
+
+  /* 匿名「说话人N」兜底：任何情况下都不静默 return ——
+     以前识别不到角色就直接 return，用户点完按钮"什么都没发生"。
+     现在改为本地兜底映射（我 / 面试官）后继续生成，用户仍可点气泡标签校正。 */
+  const anonAll = [...new Set(transcript.filter(l => l.who.startsWith('说话人')).map(l => l.who))];
+  if (anonAll.length) {
+    const unresolved = anonAll.filter(l => !speakerRole[l]);
+    if (unresolved.length) {
+      if (LLM.mode === 'live') {
+        btn.disabled = true; btn.textContent = '识别说话人中…';
+        try { await detectSpeakers(); } catch (e) { /* 识别失败不阻塞，走兜底 */ }
+      }
+      // 仍未解决的 → 按顺序兜底映射，保证一定能出总结
+      const stillUn = [...new Set(transcript.filter(l => l.who.startsWith('说话人')).map(l => l.who))].filter(l => !speakerRole[l]);
+      if (stillUn.length) {
+        stillUn.sort((a, b) => (parseInt(a.replace(/\D/g, ''), 10) || 0) - (parseInt(b.replace(/\D/g, ''), 10) || 0))
+          .forEach((w, i) => { speakerRole[w] = i === 0 ? '我' : '面试官'; });
+        Toast.show('说话人角色已按「我 / 面试官」默认分配，可点气泡标签校正', 'warn');
+        renderChooser(); renderTranscript();
+      }
+    }
+  }
+
+  btn.disabled = true; btn.textContent = '总结中…';
+  $('#sumBox').classList.remove('hide');
+  $('#sumContent').innerHTML = '<span class="caret"></span>';
+
+  const text = transcript.map(l => `${resolveWho(l.who)}：${l.text}`).join('\n');
+  const box = $('#sumContent');
+  let full = '';
+  let gotContent = false;
+
+  /* 推理模型会先吐十几秒思考链再吐正文。没有这段提示，用户只能盯着一个光标，
+     会误以为「卡住了 / 没调用成功」。 */
+  const onThink = c => {
+    if (gotContent) return;
+    const el = $('#sumThink'); if (!el) return;
+    const n = (+el.dataset.n || 0) + (c ? c.length : 0);
+    el.dataset.n = String(n);
+    el.textContent = `模型思考中… 已梳理 ${n} 字思考过程，正在整理结论`;
+  };
+  const onToken = c => {
+    gotContent = true;
+    $('#sumThink').textContent = '';
+    full += c; box.innerHTML = md(full) + '<span class="caret"></span>';
+  };
+
+  const SYS_SUM = '你是面试复盘助手。把逐字稿总结为四个部分，每部分用二级标题开章，格式严格为：`## 一、亮点`、`## 二、知识盲区`、`## 三、改进建议`、`## 四、下一步`（数字用一二三四）。不要加前言或结尾，每部分 2-3 条，具体不空泛。';
+
+  try {
+    let r = await LLM.chat(
+      [
+        { role: 'system', content: SYS_SUM },
+        { role: 'user', content: `以下是面试逐字稿：\n\n${text}` }
+      ],
+      { onThink, onToken, maxTokens: 8192 }
+    );
+    /* 以返回值兜底：即使流式回调中途被打断，也能拿回正文，绝不留空白 */
+    if (!full.trim() && r.text) { full = r.text; }
+
+    /* 思考链吃满额度 → 正文 0 字。自动重试一次：更大额度 + 明确要求直接出结果 */
+    if (!full.trim() && r.mode === 'live') {
+      btn.textContent = '思考链过长，重试中…';
+      $('#sumThink').dataset.n = '0'; gotContent = false;
+      r = await LLM.chat(
+        [
+          { role: 'system', content: SYS_SUM + '无需长篇推理，直接给出最终四个部分。' },
+          { role: 'user', content: `以下是面试逐字稿：\n\n${text.slice(0, 6000)}` }
+        ],
+        { onThink, onToken, maxTokens: 16384 }
+      );
+      if (!full.trim() && r.text) { full = r.text; }
+    }
+
+    $('#sumThink').textContent = '';
+
+    if (!full.trim()) {
+      throw new Error('模型只产出了思考过程、未生成正文（推理额度被思考链占满）。请点「重新生成」再试一次。');
+    }
+
+    box.innerHTML = renderSummary(full)
+      + (r.truncated ? '<div class="sum-note">⚠ 正文超出长度被截断，可能不完整，可点「重新生成」补全。</div>' : '');
+    curStep = stepDone(); renderSteps();
+    if (saveReview({ summary: full })) $('#saveHint').textContent = '已自动保存';
+    Toast.show(r.truncated ? '总结已生成（内容较长，可能被截断）' : '总结完成', r.truncated ? 'warn' : 'ok');
+  } catch (err) {
+    $('#sumThink').textContent = '';
+    box.innerHTML = `<span style="color:var(--bad)">生成失败：${esc(err.message)}</span>`;
+    Toast.show(err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '✦ 重新生成';
+  }
+};
+
+fillJobs();
+renderSteps();
+
+/* 监听全局网络回退事件：在总结区上方贴一行明牌，告诉用户"刚才那次是真 AI 失败"
+   这样 DEMO 输出不会被误以为真 AI。 */
+document.addEventListener('miansu:chat-fallback', e => {
+  const sumBox = document.getElementById('sumContent');
+  if (!sumBox || document.getElementById('sumFallbackBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'sumFallbackBanner';
+  b.style.cssText = 'margin:0 0 14px;padding:11px 14px;border-radius:14px;background:rgba(245,167,66,.12);color:#92400e;font-size:13px;line-height:1.6;border:1px solid rgba(245,167,66,.3)';
+  b.innerHTML = `⚠ <b>AI 代理连接失败</b>，本段总结基于 DEMO 示例语料。需要真实分析请到<a href="settings.html" style="color:var(--accent);font-weight:700">设置</a>检查代理连通性。`;
+  sumBox.prepend(b);
+});
+
+/* 若该面试已有保存的逐字稿，自动载入（含角色映射与总结） */
+if (preJob) {
+  const saved = Store.reviews.get(preJob);
+  if (saved?.transcript) {
+    transcript = saved.transcript;
+    speakerRole = saved.speakerRole || {};
+    curStep = stepOfSummarize(); renderSteps(); renderTranscript();
+    $('#transBox').classList.remove('hide');
+    $('#saveHint').textContent = '已载入已保存记录';
+    if (saved.summary) {
+      $('#sumBox').classList.remove('hide');
+      $('#sumContent').innerHTML = renderSummary(saved.summary);
+      curStep = stepDone(); renderSteps();
+    }
+  }
+}
+</script>
+</body>
+</html>
