@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-build" content="v1.9.21">
+<title>个人中心 · 面溯</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  .pf-av{width:76px;height:76px;border-radius:26px;display:grid;place-items:center;
+         font-size:30px;font-weight:900;flex:0 0 76px}
+  .pf-name{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .pf-sub{font-size:12.5px;color:var(--tx3);font-weight:600;margin-top:4px}
+  .row-card{display:flex;align-items:center;gap:16px;padding:16px 0;
+            border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .row-card:last-child{border-bottom:none}
+</style>
+  <link rel="icon" href="favicon.svg">
+</head>
+<body>
+
+<div data-nav>
+  <nav class="navbar">
+    <div class="nav-in">
+      <a class="brand" href="index.html">
+        <div class="logo serif">溯</div>
+        <div><div class="brand-name serif">面溯</div><span class="brand-sub">INTERVIEW REVIEW</span></div>
+      </a>
+      <div class="menu">
+        <a href="index.html">首页</a>
+        <a href="records.html">面试记录</a>
+        <a href="detail.html">录音转写</a>
+        <a href="review.html">面试复盘</a>
+        <a href="resume.html">改简历</a>
+        <a href="about.html">关于项目</a>
+        <a href="settings.html">设置</a>
+      </div>
+      <div class="nav-right">
+        <a class="avatar-btn" href="profile.html" title="登录 / 个人中心">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<div id="main" class="wrap" style="padding:48px 32px 20px">
+  <div class="mb-24">
+    <span class="lbl">Profile</span>
+    <h1 style="font-size:clamp(28px,4vw,40px);margin:8px 0 6px">个人中心</h1>
+    <p class="small muted" style="margin:0">本地账号只用于标识身份，不做鉴权——数据始终存在你自己的浏览器里。</p>
+  </div>
+
+  <!-- 账号卡 -->
+  <section class="glass fade" style="padding:30px 32px;margin-bottom:20px" id="accBox"></section>
+
+  <!-- 数据统计 -->
+  <section class="glass fade" style="padding:28px 30px;margin-bottom:20px">
+    <div class="row-between mb-16">
+      <span style="font-size:16px;font-weight:800">我的数据</span>
+      <span class="tag">实时汇总</span>
+    </div>
+    <div class="grid g3" style="gap:14px">
+      <div class="stat-c"><div class="stat-n" id="sA">0</div><div class="stat-l">总投递</div></div>
+      <div class="stat-c"><div class="stat-n" id="sB">0</div><div class="stat-l">进入面试</div></div>
+      <div class="stat-c"><div class="stat-n" id="sC">0</div><div class="stat-l">已复盘</div></div>
+      <div class="stat-c" style="grid-column:1/-1">
+        <div class="stat-n" id="sD" style="color:var(--accent)">0</div>
+        <div class="stat-l">已 Offer</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 快捷入口 -->
+  <section class="glass fade" style="padding:8px 30px;margin-bottom:20px">
+    <a class="row-card" href="records.html">
+      <div class="ico" style="width:38px;height:38px;flex:0 0 38px;border-radius:12px;font-size:17px;
+                  background:var(--g-aurora)">📋</div>
+      <div style="flex:1"><div style="font-size:14.5px;font-weight:700">面试记录</div>
+        <div class="small muted">投递流水账与进度</div></div>
+      <span class="muted2">→</span>
+    </a>
+    <a class="row-card" href="review.html">
+      <div class="ico" style="width:38px;height:38px;flex:0 0 38px;border-radius:12px;font-size:17px;
+                  background:var(--g-warm)">🧩</div>
+      <div style="flex:1"><div style="font-size:14.5px;font-weight:700">面试复盘</div>
+        <div class="small muted">6 模块结构化复盘表</div></div>
+      <span class="muted2">→</span>
+    </a>
+    <a class="row-card" href="settings.html">
+      <div class="ico" style="width:38px;height:38px;flex:0 0 38px;border-radius:12px;font-size:17px;
+                  background:var(--chip);border:1px solid var(--line);color:var(--tx2)">⚙️</div>
+      <div style="flex:1"><div style="font-size:14.5px;font-weight:700">设置</div>
+        <div class="small muted">代理配置与数据导出</div></div>
+      <span class="muted2">→</span>
+    </a>
+  </section>
+
+  <!-- 隐私 -->
+  <section class="glass fade" style="padding:24px 30px;background:var(--accent-soft);border-color:transparent">
+    <div class="ai-head" style="color:var(--accent);margin-bottom:10px">
+      <span class="ai-ico" style="background:var(--g-cool)">🔒</span>关于本地账号
+    </div>
+    <ul class="small muted" style="line-height:1.85;margin:0;padding-left:18px">
+      <li>纯前端不存在安全的账号方案，这里<b style="color:var(--tx)">不设密码、不做鉴权</b>，昵称仅用于界面识别。</li>
+      <li>昵称与投递数据都写在本机 localStorage，换设备或清缓存即失效。</li>
+      <li>重要内容请在「设置 → 导出 JSON」自行备份。</li>
+    </ul>
+  </section>
+</div>
+
+<div class="foot">
+  <div class="foot-in">
+    <span>面溯 · 纯静态 · 数据不出浏览器</span>
+    <span class="mono">localStorage · miansu:account</span>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+App.mount('profile');
+
+const idx = s => STAGES.indexOf(s);
+
+/* ══════ 账号卡 ══════ */
+function renderAcc() {
+  const a = Store.account.all();
+  const box = $('#accBox');
+
+  if (!a.name) {
+    box.innerHTML = `
+      <div class="row wrap-flex" style="gap:22px">
+        <div class="pf-av" style="background:var(--nav-h);color:var(--on-bg)">
+          <svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <div class="pf-name">未登录</div>
+          <div class="pf-sub">填个昵称即可在本机建立账号，不需要密码</div>
+          <div class="row wrap-flex mt-16" style="gap:10px">
+            <input class="input" id="nick" placeholder="你的昵称" maxlength="16"
+                   style="max-width:220px" autocomplete="off">
+            <button class="btn btn-primary btn-sm" id="btnIn">登录</button>
+          </div>
+        </div>
+      </div>`;
+
+    const nick = $('#nick');
+    const go = () => {
+      const n = nick.value.trim();
+      if (!n) { Toast.show('请输入昵称', 'err'); nick.focus(); return; }
+      Store.account.login(n);
+      Store.jobs.clearSeed();   // 登录后清空示例数据，进入用户自己的空间
+      renderAcc();
+      renderStat();             // 刷新汇总数字（场次/进面/复盘/Offer）
+      Toast.show('已登录 · ' + n, 'ok');
+    };
+    $('#btnIn').onclick = go;
+    nick.onkeydown = e => { if (e.key === 'Enter') go(); };
+    nick.focus();
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="row wrap-flex" style="gap:22px">
+      <div class="pf-av" style="background:var(--on-bg);color:var(--bg-solid)">
+        ${esc(a.name.slice(0, 1).toUpperCase())}
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div class="pf-name">${esc(a.name)}</div>
+        <div class="pf-sub">本机账号 · 登录于 ${esc(a.loggedAt || '—')}</div>
+      </div>
+      <div class="row" style="gap:10px">
+        <span class="tag tag-ok">已登录</span>
+        <button class="btn btn-ghost btn-sm" id="btnOut">退出</button>
+      </div>
+    </div>`;
+
+  $('#btnOut').onclick = () => {
+    Store.account.logout();
+    renderAcc();
+    renderStat();
+    Toast.show('已退出登录', 'ok');
+  };
+}
+
+/* ══════ 数据统计 ══════ */
+function renderStat() {
+  const jobs = Store.jobs.all();
+  const rv = Store.reviews.all();
+  $('#sA').textContent = jobs.length;
+  $('#sB').textContent = jobs.filter(j => idx(j.stage) >= idx('一面') || j.result === '已 Offer').length;
+  $('#sC').textContent = jobs.filter(j => rv[j.id]?.review).length;
+  $('#sD').textContent = jobs.filter(j => j.result === '已 Offer').length;
+}
+
+// 已登录但示例未清理（如先登录旧版、后升级新版）-> 补清一次并刷新汇总
+if (Store.account.isIn && !Store.account.seedCleared) {
+  Store.jobs.clearSeed();
+  Store.account.set({ seedCleared: true });
+}
+renderAcc();
+renderStat();
+</script>
+</body>
+</html>
