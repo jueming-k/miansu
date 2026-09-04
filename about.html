@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-build" content="v1.9.21">
+<title>关于项目 · 面溯</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  .dec{border:1px solid var(--line);border-radius:20px;padding:20px 22px;margin-bottom:14px;
+       background:var(--card);backdrop-filter:blur(20px)}
+  .dec-q{font-size:15px;font-weight:700;margin-bottom:8px;display:flex;gap:9px;align-items:flex-start}
+  .dec-n{width:22px;height:22px;border-radius:8px;background:var(--g-aurora);color:#fff;
+         display:grid;place-items:center;font-size:11px;font-weight:800;flex:0 0 22px;margin-top:1px}
+  .dec-a{font-size:13.5px;line-height:1.8;color:var(--tx2)}
+  .dec-a b{color:var(--tx);font-weight:700}
+  .cost{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+        font-size:12.5px;color:var(--tx3)}
+  pre{background:var(--chip);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+      font-size:12.5px;line-height:1.75;overflow-x:auto;margin:0;
+      font-family:ui-monospace,'SF Mono',Consolas,monospace;color:var(--tx2);white-space:pre-wrap}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:8px 18px;font-size:13.5px}
+  .kv dt{color:var(--tx3);font-weight:700} .kv dd{margin:0;color:var(--tx2);line-height:1.7}
+  @media(max-width:720px){.kv{grid-template-columns:1fr;gap:2px 0}.kv dd{margin-bottom:10px}}
+</style>
+  <link rel="icon" href="favicon.svg">
+</head>
+<body>
+
+<div data-nav>
+  <nav class="navbar">
+    <div class="nav-in">
+      <a class="brand" href="index.html">
+        <div class="logo serif">溯</div>
+        <div><div class="brand-name serif">面溯</div><span class="brand-sub">INTERVIEW REVIEW</span></div>
+      </a>
+      <div class="menu">
+        <a href="index.html">首页</a>
+        <a href="records.html">面试记录</a>
+        <a href="detail.html">录音转写</a>
+        <a href="review.html">面试复盘</a>
+        <a href="resume.html">改简历</a>
+        <a href="about.html">关于项目</a>
+        <a href="settings.html">设置</a>
+      </div>
+      <div class="nav-right">
+        <a class="avatar-btn" href="profile.html" title="登录 / 个人中心">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<div id="main" class="wrap" style="padding:48px 32px 20px">
+  <div class="mb-24">
+    <span class="lbl">About</span>
+    <h1 style="font-size:clamp(32px,5vw,48px);margin:8px 0 12px">关于项目</h1>
+    <p class="small muted" style="max-width:620px;line-height:1.8;margin:0">
+      面溯是一个面向求职者的面试复盘工具。核心命题只有一个：
+      <b style="color:var(--tx)">让一份录音同时喂饱记录、复盘、仪表盘三个模块</b>，
+      把「感觉面得不好」翻译成可追踪的字段。
+    </p>
+  </div>
+
+  <!-- 技术栈 -->
+  <section class="glass fade" style="padding:28px 30px;margin-bottom:20px">
+    <h2 style="font-size:20px;margin:0 0 18px">技术栈</h2>
+    <dl class="kv">
+      <dt>前端</dt><dd>原生 HTML / CSS / JavaScript，零框架、零构建、零运行时依赖</dd>
+      <dt>数据层</dt><dd>localStorage，按 <span class="mono">miansu:</span> 命名空间隔离（jobs / reviews / settings）</dd>
+      <dt>LLM</dt><dd>DeepSeek（<span class="mono">stream: true</span> SSE 流式，解析 <span class="mono">reasoning_content</span> 思考链）</dd>
+      <dt>ASR</dt><dd>浏览器本地 Whisper（<span class="mono">transformers.js</span>，默认 <span class="mono">whisper-small</span>，可切 base / tiny），转写全程不出浏览器；另有<b>直接粘贴逐字稿</b>旁路</dd>
+      <dt>可视化</dt><dd>漏斗与转化率纯 CSS + DOM 手绘，未引入图表库</dd>
+      <dt>设计系统</dt><dd>CSS 变量驱动主题，玻璃拟态（<span class="mono">backdrop-filter</span>）+ 深浅双主题</dd>
+    </dl>
+  </section>
+
+  <!-- 架构决策 -->
+  <section class="fade">
+    <h2 style="font-size:20px;margin:36px 0 18px">关键架构决策</h2>
+
+    <div class="dec">
+      <div class="dec-q"><span class="dec-n">1</span>为什么不直连 DeepSeek 官方接口？</div>
+      <div class="dec-a">
+        两个硬性原因：<b>官方不返回 CORS 响应头</b>，浏览器 fetch 会被拦截；
+        <b>Key 会明文暴露</b>在前端代码里。因此采用可插拔<b>代理层</b>：
+        设置页填 endpoint + Key，前端只认代理，业务层零分支。
+      </div>
+      <div class="cost">代价：依赖一个自建代理，换取了「真实可用」而非「纯演示」。</div>
+    </div>
+
+    <div class="dec">
+      <div class="dec-q"><span class="dec-n">2</span>为什么做 DEMO / LIVE 双模？</div>
+      <div class="dec-a">
+        纯前端项目最大的风险是「没配置就打不开」。双模让两套接口<b>签名完全一致</b>
+        （<span class="mono">LLM.chat(messages, {onThink, onToken})</span>），
+        未配置代理时自动降级本地示例语料，全流程可点可演示；
+        导航栏常驻 <b>LIVE / DEMO 徽章</b>，任何时刻可知当前跑哪套。
+      </div>
+      <div class="cost">代价：需要维护一份示例语料，但换来「随时可演示」的确定性。</div>
+    </div>
+
+    <div class="dec">
+      <div class="dec-q"><span class="dec-n">3</span>为什么复盘表是 6 个模块？</div>
+      <div class="dec-a">
+        单块的「面试总结」会退化成情绪日记。拆成 6 模块后，
+        每个模块对应<b>不同的数据来源</b>：基础信息（记录带入）、作答（转写带入）、
+        深度复盘 / 知识漏洞 / 下一步（AI 映射）。
+        AI 只负责它能推断的部分，意向信号这类必须人工判断的<b>不交给模型</b>。
+      </div>
+      <div class="cost">代价：填写成本变高，所以做了折叠面板 + AI 预填，把成本压到「校对」而非「从零写」。</div>
+    </div>
+
+    <div class="dec">
+      <div class="dec-q"><span class="dec-n">4</span>为什么多页面而不是单页路由？</div>
+      <div class="dec-a">
+        这个产品的信息架构本身是<b>流水线</b>（投递 → 转写 → 复盘 → 仪表盘），
+        不是并列的功能 Tab。多页面让每一步有独立 URL，可直接深链跳转
+        （如从记录页带 <span class="mono">?job=xxx</span> 进入复盘），也便于逐个页面调试。
+      </div>
+      <div class="cost">代价：导航与主题状态需跨页同步，通过统一注入 + localStorage 解决。</div>
+    </div>
+
+    <div class="dec">
+      <div class="dec-q"><span class="dec-n">5</span>既然有本地转写，为什么还要做「直接粘贴逐字稿」？</div>
+      <div class="dec-a">
+        本地 Whisper 的价值在<b>隐私</b>——录音与逐字稿完全不出浏览器，也不消耗任何云端额度。
+        但代价很实在：需下载 <b>80–250MB 模型</b>、纯 WASM 推理偏慢、<b>中文专有名词识别不准</b>，
+        小模型在静音段还会生成<b>与音频无关的幻觉文本</b>。
+        而现实是：<b>手机录音 App 已自带转写</b>，质量普遍高于本地小模型。
+        因此做成双路径——<b>粘贴逐字稿为默认主路径</b>（零等待、零流量、质量最高），
+        本地转写作为隐私优先的备选，并可在 small / base / tiny 间切换；
+        转写结果上另叠一层<b>幻觉清洗</b>（剔除循环重复句与字幕套话）。
+      </div>
+      <div class="cost">代价：两条路径必须归一到同一份「可编辑逐字稿」结构，解析器要兼容多种导出格式；本地模型仍不区分说话人，需人工点击标签校对。</div>
+    </div>
+  </section>
+
+  <!-- 踩坑 -->
+  <section class="glass fade" style="padding:28px 30px;margin:20px 0">
+    <h2 style="font-size:20px;margin:0 0 18px">踩过的坑</h2>
+    <dl class="kv">
+      <dt>SSE 分包</dt><dd>流式响应会拆成多个 chunk，一行可能被截断。必须维护 buffer，按 <span class="mono">\n</span> 切分后留最后一段到下一轮，否则 JSON.parse 随机报错。</dd>
+      <dt>思考链顺序</dt><dd><span class="mono">reasoning_content</span> 与 <span class="mono">content</span> 在同一条 delta 里可能只出现一个，回调要分开处理，不能假设成对出现。</dd>
+      <dt>玻璃拟态可读性</dt><dd>浅色主题下 <span class="mono">rgba(255,255,255,.72)</span> 叠加高饱和渐变会导致文字发灰，最终用 CSS 变量分别控制浅/深两套卡片透明度与描边。</dd>
+      <dt>localStorage 隔离</dt><dd>所有 key 统一加命名空间前缀，避免与同域下其他页面串数据；清空功能必须逐个 removeItem 而非 clear。</dd>
+      <dt>本地 ASR 幻觉</dt><dd>先用 whisper-base，中文转写出的文本<b>与录音内容完全不符</b>——这是小模型在静音段的典型幻觉，不是代码 bug。换 <span class="mono">whisper-small</span> 后明显改善，并补了一层清洗（折叠重复句、剔除字幕套话）。</dd>
+      <dt>逐字稿格式碎片化</dt><dd>手机录音 App、讯飞、飞书妙记导出的格式各不相同。解析器只认「已知说话人别名 + 方/圆括号标签」，避免把「注意：…」这类普通冒号句误判成说话人。</dd>
+    </dl>
+  </section>
+
+  <!-- Prompt 透明墙 -->
+  <section class="fade">
+    <h2 style="font-size:20px;margin:36px 0 8px">Prompt 透明墙</h2>
+    <p class="small muted mb-24" style="line-height:1.8">
+      以下是本项目中真实使用的 system prompt。全部可见、可复制——
+      Prompt 是这个产品的核心资产，不藏起来。
+    </p>
+
+    <div class="dec">
+      <div class="row-between mb-16">
+        <div class="dec-q" style="margin:0"><span class="dec-n" style="background:var(--g-cool)">P1</span>漏斗诊断（首页 · AI 行动建议）</div>
+        <button class="btn btn-ghost btn-sm" onclick="copyPre(this)">复制</button>
+      </div>
+      <pre>你是求职策略顾问。基于漏斗数据定位最大流失环节，
+给出按优先级排序的可执行建议。使用 Markdown，标注优先级。</pre>
+      <div class="cost">输入：由漏斗实时计算的「投递 / 笔试 / 面试 / Offer」四段家数与转化率。</div>
+    </div>
+
+    <div class="dec">
+      <div class="row-between mb-16">
+        <div class="dec-q" style="margin:0"><span class="dec-n" style="background:var(--g-warm)">P2</span>面试总结（录音转写 + 复盘预填）</div>
+        <button class="btn btn-ghost btn-sm" onclick="copyPre(this)">复制</button>
+      </div>
+      <pre>你是面试复盘助手。把逐字稿总结为四个部分：
+亮点、知识盲区、改进建议、下一步。
+每部分 2-3 条，具体不空泛。</pre>
+      <div class="cost">四个部分与复盘表字段的映射关系：亮点→自身优势，知识盲区→知识漏洞，改进建议→优化标准答案，下一步→下一步。</div>
+    </div>
+
+    <div class="dec">
+      <div class="row-between mb-16">
+        <div class="dec-q" style="margin:0"><span class="dec-n" style="background:var(--g-mint)">P3</span>简历改写（改简历）</div>
+        <button class="btn btn-ghost btn-sm" onclick="copyPre(this)">复制</button>
+      </div>
+      <pre>你是资深产品经理兼简历顾问。基于 JD 重写简历段落：
+动词开头、量化结果、贴合 JD 关键词，不编造事实。
+只输出改写后的正文。</pre>
+      <div class="cost">「不编造事实」是硬约束：宁可改写保守，也不能生成面试中答不上来的经历。</div>
+    </div>
+  </section>
+
+  <!-- 边界 -->
+  <section class="glass fade" style="padding:26px 30px;margin-top:20px;
+           background:var(--accent-soft);border-color:transparent">
+    <div class="ai-head" style="color:var(--accent);margin-bottom:12px">
+      <span class="ai-ico" style="background:var(--g-cool)">!</span>能力边界（如实说明）
+    </div>
+    <ul style="font-size:13.5px;line-height:1.85;color:var(--tx2);margin:0;padding-left:18px">
+      <li>纯前端没有安全的账号方案，密码仅做摘要以避免明文落盘，<b>不等于</b>账号安全。</li>
+      <li>当前为 DEMO 模式时，AI 与转写输出均为<b>示例语料</b>，不可用于真实面试决策。</li>
+      <li>数据全部存储在本地浏览器，<b>换设备或清缓存会丢失</b>，重要内容请自行导出备份。</li>
+    </ul>
+  </section>
+
+  <div class="row wrap-flex mt-24" style="gap:12px">
+    <a class="btn btn-primary" href="records.html">开始使用 →</a>
+    <a class="btn btn-ghost" href="settings.html">配置代理与 Key</a>
+  </div>
+</div>
+
+<div class="foot">
+  <div class="foot-in">
+    <span>面溯 · 纯静态 · 数据不出浏览器</span>
+    <span class="mono" id="aboutVer">v1.8.2</span>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+App.mount('about');
+
+/* 页脚构建版本号 */
+(function () {
+  const el = document.getElementById('aboutVer');
+  if (typeof APP_BUILD !== 'undefined' && el) el.textContent = APP_BUILD.ver;
+})();
+
+async function copyPre(btn) {
+  const pre = btn.closest('.dec').querySelector('pre');
+  try { await navigator.clipboard.writeText(pre.innerText); Toast.show('Prompt 已复制', 'ok'); }
+  catch { Toast.show('复制失败，请手动选择', 'err'); }
+}
+</script>
+</body>
+</html>
