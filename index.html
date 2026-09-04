@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-build" content="v1.9.21">
+<title>面溯 · 面试有迹，成长可溯</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* Hero */
+  .hero{padding:84px 0 96px;text-align:center}
+  .hero h1{font-family:'Noto Serif SC','Songti SC',serif;font-weight:900;
+           font-size:clamp(64px,13vw,150px);letter-spacing:-.06em;
+           line-height:1;margin:0 0 30px;color:var(--on-bg)}
+  .hero-s1{font-size:clamp(15px,2vw,20px);font-weight:600;color:var(--on-bg);
+           letter-spacing:.05em;line-height:1.7}
+  .hero-s2{font-size:14px;color:var(--on-bg-2);letter-spacing:.06em;margin-top:8px}
+
+  /* 登录标签：站在背景上，随主题反色 */
+  .hero-login{display:inline-flex;align-items:center;gap:8px;margin-top:28px;
+              background:var(--nav-h);color:var(--on-bg);border:none;border-radius:999px;
+              padding:10px 21px;font-size:13.5px;font-weight:600;cursor:pointer;
+              transition:transform .2s,opacity .2s}
+  .hero-login:hover{transform:translateY(-2px);opacity:.9}
+
+  /* 主区：左环形 + 右（周历 + 时间轴） */
+  .main-grid{display:grid;grid-template-columns:minmax(238px,.62fr) 2fr;gap:20px;align-items:start}
+
+  /* 周历（横向 7 天） */
+  .wk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .wkday{display:flex;flex-direction:column;align-items:center;justify-content:center;
+         border-radius:18px;padding:13px 0 12px;cursor:pointer;position:relative;
+         transition:background .2s,transform .2s}
+  .wkday:hover{background:var(--nav-h);transform:translateY(-2px)}
+  .wkday .wd{font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.04em}
+  .wkday .dn{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-top:4px;
+             line-height:1;color:var(--tx)}
+  .wkday.today .dn{color:var(--accent)}
+  .wkday.today .wd{color:var(--accent)}
+  .wkday.sel{background:var(--accent-soft)}
+  .wkdot{position:absolute;bottom:6px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
+
+  @media(max-width:880px){
+    .main-grid{grid-template-columns:1fr}
+    .hero{padding:56px 0 62px}
+    .wkday .dn{font-size:17px}
+  }
+</style>
+  <link rel="icon" href="favicon.svg">
+</head>
+<body>
+
+<div data-nav>
+  <nav class="navbar">
+    <div class="nav-in">
+      <a class="brand" href="index.html">
+        <div class="logo serif">溯</div>
+        <div><div class="brand-name serif">面溯</div><span class="brand-sub">INTERVIEW REVIEW</span></div>
+      </a>
+      <div class="menu">
+        <a href="index.html">首页</a>
+        <a href="records.html">面试记录</a>
+        <a href="detail.html">录音转写</a>
+        <a href="review.html">面试复盘</a>
+        <a href="resume.html">改简历</a>
+        <a href="about.html">关于项目</a>
+        <a href="settings.html">设置</a>
+      </div>
+      <div class="nav-right">
+        <a class="avatar-btn" href="profile.html" title="登录 / 个人中心">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<div id="main" class="wrap" style="padding:20px 32px">
+
+  <!-- ══════ Hero ══════ -->
+  <section class="hero fade">
+    <h1>面溯</h1>
+    <div class="hero-s1">面试有迹，成长可溯</div>
+    <div class="hero-s2">你的求职复盘助手</div>
+    <button class="hero-login" id="btnLogin">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/></svg>
+      登录
+    </button>
+  </section>
+
+  <!-- ══════ 主区 ══════ -->
+  <section class="main-grid fade">
+
+    <!-- 环形进度（参照第一版 Overall progress） -->
+    <div class="glass glass-hover" style="padding:30px 24px;text-align:center">
+      <span class="lbl" style="display:block;margin-bottom:22px;color:var(--tx3)">Overall progress</span>
+      <div style="position:relative;display:inline-flex;align-items:center;justify-content:center">
+        <svg class="ring" viewBox="0 0 128 128">
+          <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#7b6cff"/><stop offset="100%" stop-color="#5bb0ff"/>
+          </linearGradient></defs>
+          <circle class="bgc" cx="64" cy="64" r="52"></circle>
+          <circle class="fgc" id="ring" cx="64" cy="64" r="52"></circle>
+        </svg>
+        <div style="position:absolute;text-align:center">
+          <div style="font-size:32px;font-weight:800;letter-spacing:-.03em" id="pct">0%</div>
+          <div style="font-size:11px;color:var(--tx3);font-weight:700;margin-top:2px">较投递</div>
+        </div>
+      </div>
+      <div style="margin-top:24px;padding-top:22px;border-top:1px solid var(--line);
+                  display:flex;justify-content:space-around">
+        <div><div style="font-size:19px;font-weight:800" id="nA">0</div>
+             <span style="font-size:11px;color:var(--tx3);font-weight:700">投递</span></div>
+        <div><div style="font-size:19px;font-weight:800" id="nB">0</div>
+             <span style="font-size:11px;color:var(--tx3);font-weight:700">面试</span></div>
+        <div><div style="font-size:19px;font-weight:800" id="nC">0</div>
+             <span style="font-size:11px;color:var(--tx3);font-weight:700">复盘</span></div>
+      </div>
+    </div>
+
+    <!-- 周历 + 时间轴 -->
+    <div class="glass" style="padding:28px 30px 30px">
+      <div class="row-between" style="margin-bottom:18px">
+        <span style="font-size:15px;font-weight:800">本周日程</span>
+        <span style="font-size:12px;color:var(--tx3);font-weight:600" id="wkRange">—</span>
+      </div>
+
+      <div class="wk-grid" id="wkGrid"></div>
+
+      <div style="margin:22px 0 16px;border-top:1px solid var(--line)"></div>
+
+      <div id="tl"></div>
+      <div id="tlEmpty" class="empty hide">
+        <div class="empty-ico">🗓️</div>
+        <div class="empty-t">本周没有面试安排</div>
+        <p class="empty-s">在「面试记录」里为投递填上时间，或先载入示例数据看看效果。</p>
+        <div class="row" style="justify-content:center;gap:10px;margin-top:18px">
+          <button class="btn btn-primary btn-sm" id="btnSeed">载入示例数据</button>
+          <a class="btn btn-ghost btn-sm" href="records.html">去添加 →</a>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<div class="foot">
+  <div class="foot-in">
+    <span>面溯 · 纯静态 · 数据不出浏览器</span>
+    <span class="mono">v2.2</span>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+App.mount('index');
+
+const idx = s => STAGES.indexOf(s);
+const DOW = ['一', '二', '三', '四', '五', '六', '日'];
+const C = 326.7;                                   // 2πr，r=52
+const scheduled = () => Store.jobs.all()
+  .filter(j => j.interviewAt)
+  .sort((a, b) => a.interviewAt.localeCompare(b.interviewAt));
+
+const now = new Date();
+let selDate = null;
+
+/* ══════ 本周（周一为起点） ══════ */
+function weekDays() {
+  const dow = (now.getDay() + 6) % 7;
+  const mon = new Date(now); mon.setDate(now.getDate() - dow);
+  return [...Array(7)].map((_, i) => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    return {
+      n: d.getDate(),
+      iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    };
+  });
+}
+
+/* ══════ 环形进度：以投递为底 ══════ */
+function renderRing() {
+  const jobs = Store.jobs.all();
+  const rv = Store.reviews.all();
+
+  const sent = jobs.length;
+  const itv = jobs.filter(j => idx(j.stage) >= idx('一面') || j.result === '已 Offer').length;
+  const rev = jobs.filter(j => rv[j.id]?.review).length;
+
+  /* 分母是投递：环 = 已进入面试 / 总投递 */
+  const pct = sent ? Math.round(itv / sent * 100) : 0;
+
+  const ring = $('#ring');
+  setTimeout(() => { ring.style.strokeDashoffset = C - C * pct / 100; }, 260);
+
+  let cur = 0;
+  const t = setInterval(() => {
+    cur += 1;
+    if (cur >= pct) { cur = pct; clearInterval(t); }
+    $('#pct').textContent = cur + '%';
+  }, 900 / Math.max(pct, 1));
+
+  $('#nA').textContent = sent;
+  $('#nB').textContent = itv;
+  $('#nC').textContent = rev;
+}
+
+/* ══════ 周历 ══════ */
+function renderWeek() {
+  const days = weekDays();
+  const hasSet = new Set(scheduled().map(j => j.interviewAt.slice(0, 10)));
+  const todayStr = today();
+
+  $('#wkRange').textContent = `${days[0].n} – ${days[6].n} 日`;
+
+  $('#wkGrid').innerHTML = days.map((d, i) => {
+    const cls = ['wkday'];
+    if (d.iso === todayStr) cls.push('today');
+    if (d.iso === selDate) cls.push('sel');
+    return `<div class="${cls.join(' ')}" data-iso="${d.iso}">
+      <span class="wd">${DOW[i]}</span>
+      <span class="dn">${d.n}</span>
+      ${hasSet.has(d.iso) ? '<span class="wkdot"></span>' : ''}
+    </div>`;
+  }).join('');
+
+  $$('#wkGrid .wkday').forEach(el => el.onclick = () => {
+    const iso = el.dataset.iso;
+    selDate = selDate === iso ? null : iso;
+    renderWeek(); renderTL();
+  });
+}
+
+/* ══════ 时间轴 ══════ */
+function renderTL() {
+  const days = weekDays();
+  const from = days[0].iso, to = days[6].iso;
+  const list = scheduled().filter(j => {
+    const d = j.interviewAt.slice(0, 10);
+    const inWeek = d >= from && d <= to;
+    return selDate ? d === selDate : inWeek;
+  });
+
+  const box = $('#tl'), empty = $('#tlEmpty');
+  if (!list.length) { box.innerHTML = ''; empty.classList.remove('hide'); return; }
+  empty.classList.add('hide');
+
+  box.innerHTML = list.map(j => `
+    <div class="tl-item">
+      <div class="tl-line"></div>
+      <div class="tl-date">
+        <div class="tl-d">${dayNum(j.interviewAt)}</div>
+        <div class="tl-w">${weekday(j.interviewAt)}</div>
+      </div>
+      <div class="tl-body">
+        <div class="tl-co">${esc(j.company)} · ${esc(j.stage)}</div>
+        <div class="tl-meta">${esc(j.role)}</div>
+        ${j.place ? `<div class="tl-place">📍 ${esc(j.place)}</div>` : ''}
+      </div>
+      ${j.interviewTime ? `<div class="tl-when">${esc(j.interviewTime)}</div>` : ''}
+    </div>`).join('');
+}
+
+/* ══════ 交互 ══════ */
+/* 登录标签：文案随登录态变化，点进个人中心 */
+function syncLogin() {
+  const last = $('#btnLogin').lastChild;
+  if (last) last.textContent = Store.account.isIn ? ' 个人中心' : ' 登录';
+}
+$('#btnLogin').onclick = () => location.href = 'profile.html';
+
+$('#btnSeed').onclick = () => {
+  Store.jobs.seed();
+  selDate = null;
+  renderAll();
+  Toast.show('已载入示例数据', 'ok');
+};
+
+function renderAll() { renderRing(); renderWeek(); renderTL(); syncLogin(); }
+renderAll();
+</script>
+</body>
+</html>
