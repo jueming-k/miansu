@@ -1,0 +1,40 @@
+# 部署包与快照（发版/分享只用「面溯-部署用」，无需入库）
+面溯-部署用/
+面溯-EdgeOne部署用/
+面溯-EdgeOne上传包/
+面溯-GitHubPages包/
+面溯-发出版.zip
+v1/
+v2/
+1008d/
+
+# 开发调试脚本与临时文件
+_check.js
+_dbg_mode.cjs
+_diag_stream.cjs
+_dump_sse.cjs
+_mock_server.cjs
+_mock_sse.cjs
+_pack.py
+_sse_raw.txt
+_test_parse.mjs
+_verify_local.cjs
+_*.cjs
+_*.mjs
+_*.js
+_*.py
+_*.txt
+
+# 旧方案留档（Cloudflare Worker 已弃用，proxy-worker.js 保留但 netlify 目录不留）
+netlify/
+
+# 构建/平台缓存与本地元数据（绝不入库）
+.edgeone/
+.netlify/
+.workbuddy/
+*.zip
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.log
