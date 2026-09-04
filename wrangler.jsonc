@@ -1,0 +1,11 @@
+{
+  // 面溯 · Cloudflare Workers（静态资产 + /ai API）
+  // 静态资产优先：请求先匹配根目录静态文件，未命中（如 /ai）走 worker.js
+  "name": "miansu",
+  "compatibility_date": "2025-09-01",
+  "main": "worker.js",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS"
+  }
+}
