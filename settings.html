@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-build" content="v1.9.21">
+<title>设置 · 面溯</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  .switch{width:52px;height:29px;border-radius:999px;border:1px solid var(--line);
+          background:var(--chip);position:relative;cursor:pointer;transition:background .25s;flex:0 0 52px}
+  .switch::after{content:'';position:absolute;top:3px;left:3px;width:21px;height:21px;
+                 border-radius:50%;background:var(--tx3);transition:all .25s}
+  .switch.on{background:var(--g-mint)}
+  .switch.on::after{left:26px;background:#fff}
+  .card-row{display:flex;align-items:center;justify-content:space-between;gap:16px;
+            padding:15px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .card-row:last-child{border-bottom:none}
+</style>
+  <link rel="icon" href="favicon.svg">
+</head>
+<body>
+
+<div data-nav>
+  <nav class="navbar">
+    <div class="nav-in">
+      <a class="brand" href="index.html">
+        <div class="logo serif">溯</div>
+        <div><div class="brand-name serif">面溯</div><span class="brand-sub">INTERVIEW REVIEW</span></div>
+      </a>
+      <div class="menu">
+        <a href="index.html">首页</a>
+        <a href="records.html">面试记录</a>
+        <a href="detail.html">录音转写</a>
+        <a href="review.html">面试复盘</a>
+        <a href="resume.html">改简历</a>
+        <a href="about.html">关于项目</a>
+        <a href="settings.html">设置</a>
+      </div>
+      <div class="nav-right">
+        <a class="avatar-btn" href="profile.html" title="登录 / 个人中心">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<div id="main" class="wrap" style="padding:48px 32px 20px">
+  <div class="mb-24">
+    <span class="lbl">Settings</span>
+    <h1 style="font-size:clamp(28px,4vw,40px);margin:8px 0 6px">设置</h1>
+    <p class="small muted" style="margin:0">管理运行模式与本地数据。</p>
+  </div>
+
+  <!-- 模式 -->
+  <section class="glass fade" style="padding:26px 30px;margin-bottom:20px">
+    <div class="card-row">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">运行模式</div>
+        <p class="small muted" style="margin:0;line-height:1.7">
+          DEMO：不调用真实模型，返回示例语料，全流程可演示。<br>
+          LIVE：通过代理层调用真实 AI（需要你的网络能连通代理地址，详见下方「测试连接」）。
+        </p>
+      </div>
+      <div class="row" style="gap:12px">
+        <span class="tag" id="modeTag">DEMO</span>
+        <div class="switch" id="swMode"></div>
+      </div>
+    </div>
+    <div class="card-row">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">当前生效模式</div>
+        <p class="small muted" style="margin:0">默认 DEMO（永远可演示）；开 LIVE 后会自动测试连通性，连不上就秒切回 DEMO。</p>
+      </div>
+      <span class="tag tag-warn" id="effTag">DEMO</span>
+    </div>
+    <div class="card-row">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">AI 代理连通性</div>
+        <p class="small muted" style="margin:0">不发请求检查代理地址能不能通。绿点＝可达，开 LIVE 也能用；红点＝不可达，开 LIVE 也会自动降级。</p>
+      </div>
+      <div class="row" style="gap:10px">
+        <span class="tag" id="probeTag" style="min-width:84px;justify-content:center">未探测</span>
+        <button class="btn btn-ghost btn-sm" id="btnProbe">测试连接</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 代理配置（默认收起，站长专属） -->
+  <details class="glass fade" style="padding:26px 30px;margin-bottom:20px">
+    <summary style="cursor:pointer;font-size:19px;font-weight:700">高级 · 代理层配置（站长专属） <span class="tag tag-info">默认已接入，一般无需改动</span></summary>
+    <div style="margin-top:18px">
+    <div class="field">
+      <label class="field-l">Endpoint（代理地址）</label>
+      <input class="input" id="endpoint" placeholder="/ai">
+      <p class="small muted" style="margin:8px 0 0;line-height:1.7">
+        默认 <code>/ai</code> 是本站自带的同域 Edge Function 代理：主站打得开，它就一定通（不再依赖国内常不可达的 workers.dev）。<br>
+        一般无需改动；只有你想换成自己的代理时才填完整 URL。
+      </p>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label class="field-l">API Key</label>
+        <input class="input" id="key" type="password" placeholder="sk-...">
+      </div>
+      <div class="field">
+        <label class="field-l">模型</label>
+        <input class="input" id="model" placeholder="deepseek-v4-flash">
+      </div>
+    </div>
+
+    <div class="row wrap-flex" style="gap:10px">
+      <button class="btn btn-primary btn-sm" id="btnSaveCfg">保存配置</button>
+      <button class="btn btn-ghost btn-sm" id="btnTest">测试连接</button>
+      <button class="btn btn-ghost btn-sm" id="btnClearCfg">清除 Key</button>
+    </div>
+
+    <div class="mt-16" style="padding:14px 16px;border-radius:14px;background:var(--accent-soft);
+         border:1px solid transparent">
+      <div class="small" style="font-weight:700;color:var(--accent);margin-bottom:6px">为什么需要代理？</div>
+      <p class="small muted" style="margin:0;line-height:1.75">
+        DeepSeek 官方接口不返回 CORS 响应头，浏览器无法直连；且 Key 放在前端会明文暴露。
+        代理层只需转发请求并透传 SSE 流，任何云函数或轻量服务端均可承担。
+      </p>
+    </div>
+    </div>
+  </details>
+
+  <!-- 数据管理 -->
+  <section class="glass fade" style="padding:26px 30px;margin-bottom:20px">
+    <div class="row-between wrap-flex mb-16">
+      <h2 style="font-size:19px;margin:0">数据管理</h2>
+      <span class="tag" id="usage">—</span>
+    </div>
+
+    <div class="card-row">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:14.5px;font-weight:700;margin-bottom:4px">导出备份</div>
+        <p class="small muted" style="margin:0">把投递记录与复盘数据导出为 JSON 文件。</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btnExport">导出 JSON</button>
+    </div>
+
+    <div class="card-row">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:14.5px;font-weight:700;margin-bottom:4px">导入备份</div>
+        <p class="small muted" style="margin:0">从 JSON 文件恢复，将覆盖当前同名数据。</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btnImport">选择文件</button>
+      <input type="file" id="fileImport" accept="application/json" class="hide">
+    </div>
+
+    <div class="card-row">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:14.5px;font-weight:700;margin-bottom:4px">载入示例数据</div>
+        <p class="small muted" style="margin:0">重置为 6 家公司示例，用于演示漏斗与复盘链路。</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btnSeed">载入示例</button>
+    </div>
+
+    <div class="card-row">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:14.5px;font-weight:700;margin-bottom:4px;color:var(--bad)">清空全部数据</div>
+        <p class="small muted" style="margin:0">删除投递记录、复盘内容与配置，不可撤销。</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btnWipe" style="color:var(--bad)">清空</button>
+    </div>
+  </section>
+
+  <!-- 隐私 -->
+  <section class="glass fade" style="padding:24px 30px">
+    <div class="ai-head" style="color:var(--accent);margin-bottom:10px">
+      <span class="ai-ico" style="background:var(--g-cool)">🔒</span>隐私说明
+    </div>
+    <ul class="small muted" style="line-height:1.85;margin:0;padding-left:18px">
+      <li>录音文件与逐字稿<b>不会上传</b>任何服务器（接入本地 Whisper 后亦然）。</li>
+      <li>投递记录、复盘内容只写入本机 localStorage，换设备或清缓存会丢失。</li>
+      <li>仅在 LIVE 模式下，脱敏后的文本内容会经过你<b>自己配置的代理</b>转发给模型服务商。</li>
+    </ul>
+  </section>
+
+  <!-- 版本 -->
+  <section class="glass fade" style="padding:18px 30px;margin-bottom:20px">
+    <div class="row-between wrap-flex">
+      <div class="small muted" style="font-weight:700">当前版本</div>
+      <div class="row" style="gap:10px">
+        <span class="tag tag-info" id="verTag">—</span>
+        <span class="mono small muted" id="verAt"></span>
+      </div>
+    </div>
+    <p class="small muted" id="verFeat" style="margin:10px 0 0;line-height:1.7"></p>
+  </section>
+</div>
+
+<div class="foot">
+  <div class="foot-in">
+    <span>面溯 · 配置仅存本机</span>
+    <span class="mono">localStorage · miansu:settings</span>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+App.mount('settings');
+
+const sw = $('#swMode');
+
+/* ══════ 载入配置 ══════ */
+function load() {
+  const s = Store.settings.all();
+  $('#endpoint').value = s.endpoint || '';
+  $('#key').value = s.key || '';
+  $('#model').value = s.model || 'deepseek-v4-flash';
+  sw.classList.toggle('on', s.mode === 'live');
+  syncTags();
+}
+
+function syncTags() {
+  const s = Store.settings.all();
+  const live = LLM.mode === 'live';
+  $('#modeTag').textContent = s.mode === 'live' ? 'LIVE（已开启）' : 'DEMO';
+  $('#modeTag').className = 'tag ' + (s.mode === 'live' ? 'tag-info' : '');
+  $('#effTag').textContent = live ? 'LIVE（代理已配置）' : 'DEMO（未配置代理）';
+  $('#effTag').className = 'tag ' + (live ? 'tag-ok' : 'tag-warn');
+  const badge = $('#modeBadge');
+  if (badge) {
+    badge.textContent = live ? 'LIVE' : 'DEMO';
+    badge.className = 'tag ' + (live ? 'tag-ok' : 'tag-warn');
+  }
+}
+
+/* ══════ 交互 ══════ */
+sw.onclick = () => {
+  const s = Store.settings.all();
+  Store.settings.set({ mode: s.mode === 'live' ? 'demo' : 'live' });
+  load();
+  Toast.show(Store.settings.all().mode === 'live' ? '已切到 LIVE，需配置代理生效' : '已切回 DEMO', 'ok');
+};
+
+$('#btnSaveCfg').onclick = () => {
+  Store.settings.set({
+    endpoint: $('#endpoint').value.trim(),
+    key: $('#key').value.trim(),
+    model: $('#model').value.trim() || 'deepseek-v4-flash'
+  });
+  load();
+  Toast.show('配置已保存', 'ok');
+};
+
+$('#btnClearCfg').onclick = () => {
+  Store.settings.set({ endpoint: '', key: '' });
+  load();
+  Toast.show('已清除 endpoint 与 Key', 'ok');
+};
+
+$('#btnTest').onclick = async e => {
+  const btn = e.currentTarget;
+  btn.disabled = true; btn.textContent = '测试中…';
+  try {
+    /* 只问代理状态，不消耗额度 */
+    const h = await Net.health();
+    const mine = !!Store.settings.all().key;
+    if (!h.ok) {
+      Toast.show('代理不可达：' + (h.reason || h.status || '未知原因'), 'err');
+    } else if (h.serverKey) {
+      Toast.show('真 AI 已就绪 · 服务端共用 Key 已配置', 'ok');
+    } else if (mine) {
+      Toast.show('代理可达 · 将使用你填写的 Key', 'ok');
+    } else {
+      Toast.show('代理可达，但没有可用 Key：请在下方填 Key，或由站长配置共用 Key', 'warn');
+    }
+  } catch (err) {
+    Toast.show('测试失败：' + err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '测试连接';
+  }
+};
+
+/* ══════ 主动探测 AI 代理连通性（不依赖 LIVE 开关） ══════ */
+const probeTag = $('#probeTag');
+async function runProbe() {
+  if (!Store.settings.all().endpoint) {
+    probeTag.textContent = '未配置';
+    probeTag.className = 'tag tag-warn';
+    return;
+  }
+  probeTag.textContent = '探测中…';
+  probeTag.className = 'tag';
+  const r = await Net.probe();
+  if (r.reason === 'no-server-key') {
+    probeTag.textContent = '在线 · 缺 Key';
+    probeTag.className = 'tag tag-warn';
+    probeTag.title = '代理正常，但没有可用 Key：在下方填你自己的 Key，或由站长在 Netlify 环境变量 DEEPSEEK_API_KEY 配置共用 Key';
+    return;
+  }
+  if (r.ok) {
+    probeTag.textContent = `可达（${r.status}）`;
+    probeTag.className = 'tag tag-ok';
+  } else {
+    probeTag.textContent = `不可达 · ${r.reason || ''}`;
+    probeTag.className = 'tag tag-bad';
+    probeTag.title = (r.message || r.reason || '').slice(0, 200);
+  }
+}
+$('#btnProbe').onclick = runProbe;
+/* 页面加载时顺手探测一次，给用户即时反馈 */
+runProbe();
+/* 监听自动回退事件：按钮状态同步 */
+document.addEventListener('miansu:network-fallback', () => { syncTags(); runProbe(); });
+
+/* ══════ 数据 ══════ */
+function usage() {
+  let n = 0;
+  for (const k in localStorage) if (k.startsWith(NS)) n += (localStorage[k] || '').length;
+  $('#usage').textContent = `已用 ${(n / 1024).toFixed(1)} KB`;
+}
+
+$('#btnExport').onclick = () => {
+  const data = { jobs: Store.jobs.all(), reviews: Store.reviews.all(), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `面溯备份-${today()}.json`;
+  a.click();
+  Toast.show('已导出', 'ok');
+};
+
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (d.jobs) Store._write('jobs', d.jobs);
+      if (d.reviews) Store._write('reviews', d.reviews);
+      Toast.show('导入成功', 'ok');
+      usage();
+    } catch { Toast.show('文件解析失败', 'err'); }
+  };
+  r.readAsText(f);
+};
+
+$('#btnSeed').onclick = () => { Store.jobs.seed(); Toast.show('已载入 6 条示例', 'ok'); usage(); };
+
+$('#btnWipe').onclick = () => {
+  if (!confirm('确认清空全部数据？此操作不可撤销，建议先导出备份。')) return;
+  if (!confirm('再次确认：投递记录、复盘内容与配置都会被删除。')) return;
+  Store.reset();
+  load(); usage();
+  Toast.show('已清空全部数据', 'ok');
+};
+
+load();
+usage();
+
+/* ══════ 版本号 ══════ */
+(function () {
+  const el = document.getElementById('verTag');
+  if (typeof APP_BUILD !== 'undefined' && el) {
+    el.textContent = APP_BUILD.ver;
+    document.getElementById('verAt').textContent = APP_BUILD.at || '';
+    document.getElementById('verFeat').textContent = APP_BUILD.feat || '';
+  }
+})();
+</script>
+</body>
+</html>
