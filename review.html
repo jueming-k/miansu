@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-build" content="v1.9.21">
+<meta name="app-build" content="v2.0.0">
 <title>面试复盘 · 面溯</title>
 <link rel="stylesheet" href="styles.css">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -47,11 +47,12 @@
     <div>
       <span class="lbl">Review · 6 Modules</span>
       <h1 style="font-size:clamp(28px,4vw,40px);margin:8px 0 6px">面试复盘</h1>
-      <p class="small muted" style="margin:0">结构化复盘表。AI 预填知识漏洞与下一步，其余由你补充。</p>
+      <p class="small muted" style="margin:0">结构化复盘表。「AI 预填」快速通道，「AI 深挖」先追问再重写，其余由你补充。</p>
     </div>
     <div class="row" style="gap:10px">
       <button class="btn btn-ghost btn-sm" id="btnExpand">全部展开</button>
       <button class="btn btn-primary btn-sm" id="btnAI">✦ AI 预填</button>
+      <button class="btn btn-primary btn-sm" id="btnDeep">✦ AI 深挖</button>
       <button class="btn btn-primary btn-sm" id="btnSave">保存复盘</button>
     </div>
   </div>
@@ -70,6 +71,18 @@
   </div>
 
   <div id="modules"></div>
+</div>
+
+<!-- v2.0 追问面板：右侧 380px 抽屉，720px 以下变底部全宽堆叠 -->
+<div id="deepPanel" class="probe-drawer hide">
+  <div class="probe-head">
+    <div>
+      <div class="probe-t">✦ AI 深挖</div>
+      <div class="probe-sub">追问式复盘 · 一次深挖约 3 次 AI 调用</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="btnDeepClose">收起</button>
+  </div>
+  <div class="probe-body" id="probeBody"></div>
 </div>
 
 <div class="foot">
@@ -166,6 +179,7 @@ function fillJobs() {
     ? jobs.map(j => `<option value="${j.id}"${j.id === curJob ? ' selected' : ''}>${esc(j.company)} · ${esc(j.role)} · ${esc(j.stage)}</option>`).join('')
     : '<option>（暂无记录，请先到「面试记录」添加）</option>';
   loadSaved();
+  loadThread();
 }
 
 /* ══════ 载入已保存数据 ══════ */
@@ -202,7 +216,7 @@ $('#btnSave').onclick = () => {
   Toast.show('复盘已保存', 'ok');
 };
 
-/* ══════ AI 预填 ══════ */
+/* ══════ AI 预填（v1 快速通道 · 只调 1 次，保持原样） ══════ */
 $('#btnAI').onclick = async e => {
   const btn = e.currentTarget;
   const transcript = $('[data-f="transcript"]')?.value.trim();
@@ -279,6 +293,268 @@ function mapSections(text) {
   return out;
 }
 
+/* ════════════════════════════════════════════════
+   v2.0 追问式复盘 Agent（三阶段：探针 → 追问 → 收敛）
+   - 数据层（Agent.* / Store.threads / Store.agentlog）在 app.js
+   - 本段只做 UI 编排；线程状态存 miansu:threads，刷新不丢
+   ════════════════════════════════════════════════ */
+const TARGET_LABEL = { knowledge: '知识漏洞', gap: '作答漏洞', point: '考察点', better: '优化答案' };
+
+let thread = null;   // 当前 jobId 的追问线程镜像（Store.threads 的同构对象）
+
+function loadThread() { thread = curJob ? Store.threads.get(curJob) : null; }
+
+const curTranscript = () => ($('[data-f="transcript"]')?.value || '').trim();
+const curStuck = () => ($('[data-f="stuck"]')?.value || '').trim();
+
+function openDrawer() { $('#deepPanel').classList.remove('hide'); }
+function closeDrawer() { $('#deepPanel').classList.add('hide'); }
+$('#btnDeepClose').onclick = () => closeDrawer();
+
+/* 阶段一 · 探针：面板显示生成中 */
+function renderProbeLoading() {
+  $('#probeBody').innerHTML = `
+    <div class="chat iv fade">
+      <div class="avatar">AI</div>
+      <div class="chat-main">
+        <div class="who-name">面溯 AI</div>
+        <div class="bubble">正在阅读逐字稿，挑出 3 个最值得追问的点…</div>
+      </div>
+    </div>
+    <div class="row" style="gap:8px"><span class="tag tag-info">AI 生成中</span><span class="small muted">请稍候，最多约 30 秒</span></div>`;
+  bindReveal();
+}
+
+/* 阶段二 · 追问：逐条推送，答完一条出下一条 */
+function renderThread() {
+  const box = $('#probeBody');
+  if (!thread || !thread.probes || !thread.probes.length) {
+    box.innerHTML = `
+      <div class="empty">
+        <div class="empty-ico">✦</div>
+        <div class="empty-t">还没有追问线程</div>
+        <div class="empty-s">点上方「✦ AI 深挖」开始：AI 先提 3 个问题，你逐条回答后，它结合回答重写复盘</div>
+      </div>`;
+    bindReveal();
+    return;
+  }
+
+  const answers = thread.answers || {};
+  const skipped = thread.skipped || {};
+  const swaps = thread.swaps || {};
+  const done = (id) => (id in answers) || !!skipped[id];
+  const firstOpen = thread.probes.findIndex(p => !done(p.id));
+  const allDone = firstOpen === -1;
+
+  let html = '';
+  if (thread.dropped > 0) {
+    html += `<div class="small muted" style="padding:0 2px;line-height:1.7">⚠ 有 ${thread.dropped} 条追问因 quote 未在逐字稿中找到而被丢弃</div>`;
+  }
+
+  thread.probes.forEach((p, i) => {
+    const answered = done(p.id);
+    if (!answered && i !== firstOpen) return;   // 逐条推送：只显示当前这条
+    const a = answers[p.id] || '';
+    html += `
+    <div class="probe-q fade">
+      <div class="row" style="gap:8px">
+        <div class="probe-q-n">${i + 1}</div>
+        <span class="tag">${esc(TARGET_LABEL[p.target] || p.target)}</span>
+        <span class="small muted" style="margin-left:auto">第 ${i + 1} / ${thread.probes.length} 问</span>
+      </div>
+      <div class="chat iv">
+        <div class="avatar">AI</div>
+        <div class="chat-main">
+          <div class="who-name">面溯 AI</div>
+          <div class="bubble">${esc(p.question)}</div>
+        </div>
+      </div>
+      <div class="probe-q-quote">「${esc(p.quote)}」</div>
+      ${!answered ? `
+        <textarea class="textarea" data-ans="${p.id}" placeholder="你的回答…（也可以点「跳过」）"></textarea>
+        <div class="probe-q-actions">
+          <button class="btn btn-primary btn-sm" data-answer="${p.id}">回答</button>
+          <button class="btn btn-ghost btn-sm" data-skip="${p.id}">跳过</button>
+          ${(swaps[p.id] || 0) < 2 ? `<button class="btn btn-ghost btn-sm" data-swap="${p.id}">换一个问题 · 剩${2 - (swaps[p.id] || 0)}</button>` : ''}
+        </div>` : `
+        <div class="row" style="gap:8px;margin-top:10px">
+          ${skipped[p.id]
+            ? `<span class="tag tag-warn">已跳过 · 收敛时该字段以草稿为准</span>`
+            : `<span class="tag tag-ok">已回答</span>`}
+        </div>
+        ${!skipped[p.id] ? `
+        <div class="chat me">
+          <div class="avatar">我</div>
+          <div class="chat-main">
+            <div class="who-name">我</div>
+            <div class="bubble">${esc(a)}</div>
+          </div>
+        </div>` : ''}`}
+    </div>`;
+  });
+
+  if (allDone) {
+    html += thread.stage === 'converge' ? `
+      <div class="chat iv fade">
+        <div class="avatar">AI</div>
+        <div class="chat-main">
+          <div class="who-name">面溯 AI</div>
+          <div class="bubble">复盘已生成，已回填 ${thread.lastFill || 0} 个空字段。请在左侧校对后点「保存复盘」。</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btnDeepAgain">再来一轮深挖</button>` : `
+      <div class="probe-finish fade">
+        <p class="small muted" style="margin:0 0 12px;line-height:1.7">3 轮追问已完成。点下方按钮，AI 会结合你的回答重写 8 个复盘字段——只回填空字段，你已手填的内容不会被覆盖。</p>
+        <button class="btn btn-primary" id="btnConverge">生成完整复盘</button>
+      </div>`;
+  } else {
+    html += `<div class="row" style="gap:8px;padding:2px"><span class="tag tag-warn">待追问</span><span class="small muted">回答当前这条后自动推送下一条</span></div>`;
+  }
+
+  box.innerHTML = html;
+  bindReveal();
+
+  /* 绑定本轮交互 */
+  $$('[data-answer]', box).forEach(b => b.onclick = () => submitAnswer(b.dataset.answer));
+  $$('[data-skip]', box).forEach(b => b.onclick = () => skipAnswer(b.dataset.skip));
+  $$('[data-swap]', box).forEach(b => b.onclick = () => swapQuestion(b.dataset.swap));
+  const c = $('#btnConverge'); if (c) c.onclick = convergeNow;
+  const ag = $('#btnDeepAgain'); if (ag) ag.onclick = () => { Store.threads.remove(curJob); thread = null; startDeepFlow(); };
+  const ta = $('[data-ans]', box);
+  if (ta && window.innerWidth > 720) ta.focus();
+}
+
+function submitAnswer(id) {
+  const ta = $(`[data-ans="${id}"]`);
+  const text = ta ? ta.value.trim() : '';
+  if (!text) { Toast.show('先写点内容，或点「跳过」', 'warn'); return; }
+  thread.answers[id] = text;
+  delete thread.skipped[id];
+  Store.threads.set(curJob, thread);
+  renderThread();
+}
+
+function skipAnswer(id) {
+  thread.answers[id] = '';
+  thread.skipped[id] = true;
+  Store.threads.set(curJob, thread);
+  renderThread();
+}
+
+async function swapQuestion(id) {
+  if ((thread.swaps[id] || 0) >= 2) { Toast.show('这条问题已换过 2 次', 'warn'); return; }
+  const btn = $(`[data-swap="${id}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
+  try {
+    const existing = thread.probes.filter(p => p.id !== id).map(p => p.question).join(' / ');
+    const r = await Agent.swapProbe({ jobId: curJob, transcript: curTranscript(), stuck: curStuck(), existing });
+    if (r && r.probe) {
+      const idx = thread.probes.findIndex(p => p.id === id);
+      if (idx >= 0) thread.probes[idx] = { ...r.probe, id };
+      thread.swaps[id] = (thread.swaps[id] || 0) + 1;
+      delete thread.answers[id]; delete thread.skipped[id];   // 问题换了，旧答案作废重问
+      Store.threads.set(curJob, thread);
+      if (r.fallback) Toast.show('AI 输出格式异常，已用备用问题替换', 'warn');
+      renderThread();
+      return;
+    }
+    Toast.show('换问题失败，请稍后再试', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = `换一个问题 · 剩${2 - (thread.swaps[id] || 0)}`; }
+  } catch (err) {
+    Toast.show(err.message || '换问题失败', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = `换一个问题 · 剩${2 - (thread.swaps[id] || 0)}`; }
+  }
+}
+
+/* 阶段三 · 收敛：结合 3 轮问答重写 8 字段，只回填空字段 */
+async function convergeNow() {
+  const btn = $('#btnConverge');
+  if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
+  try {
+    const qa = thread.probes.map(p => ({ id: p.id, question: p.question, answer: thread.answers[p.id] || '' }));
+    const r = await Agent.runConverge({
+      jobId: curJob,
+      transcript: curTranscript(),
+      stuck: curStuck(),
+      qa,
+      draft: thread.draft,
+      mapFallback: mapSections
+    });
+
+    let n = 0;
+    Agent.FIELDS.forEach(k => {
+      const el = $(`[data-f="${k}"]`);
+      const v = String(r.review[k] || '').trim();
+      if (!v) return;
+      if (el && !el.value.trim()) { el.value = v; n++; }
+      if (el) {
+        el.style.transition = 'background .6s';
+        el.style.background = 'var(--accent-soft)';
+        setTimeout(() => { el.style.background = ''; }, 600);
+      }
+    });
+    [3, 5, 6].forEach(m => {
+      const b = $(`[data-body="${m}"]`); if (b) b.style.display = 'block';
+      const g = $(`[data-badge="${m}"]`); if (g) g.textContent = '收起';
+    });
+
+    thread.stage = 'converge';
+    thread.lastFill = n;
+    Store.threads.set(curJob, thread);
+    renderThread();
+
+    if (r.demo) {
+      Toast.show('当前为 DEMO 演示模式，追问与复盘均为占位示例，请到「设置」配置 Key 后重试', 'info');
+    } else if (r.fallback) {
+      Toast.show('AI 输出格式异常，已用备用方式填充，请校对', 'warn');
+    } else {
+      Toast.show(`已回填 ${n} 个空字段，请校对后保存`, 'ok');
+    }
+  } catch (err) {
+    Toast.show(err.message || '收敛失败，请稍后再试', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = '生成完整复盘'; }
+  }
+}
+
+/* 深挖入口：有线程就续接，没线程就开探针 */
+async function startDeepFlow() {
+  const transcript = curTranscript(), stuck = curStuck();
+  if (!transcript && !stuck) {
+    Toast.show('请先填写逐字稿或卡壳问题（可到「录音转写」页生成）', 'err');
+    return;
+  }
+  openDrawer();
+  renderProbeLoading();
+  try {
+    const filled = Agent.FIELDS
+      .map(k => ({ k, el: $(`[data-f="${k}"]`) }))
+      .filter(x => x.el && x.el.value.trim())
+      .map(x => `${x.k}: ${x.el.value.trim().slice(0, 60)}`)
+      .join('\n');
+    const r = await Agent.runProbe({ jobId: curJob, transcript, stuck, filled });
+    thread = { probes: r.probes, answers: {}, skipped: {}, swaps: {}, draft: r.draft, stage: 'thread', dropped: r.dropped || 0 };
+    Store.threads.set(curJob, thread);
+    if (r.demo) {
+      Toast.show('当前为 DEMO 演示模式，追问为占位示例，请到「设置」配置 Key 后重试', 'info');
+    } else if (r.fallback) {
+      Toast.show('AI 输出格式异常，已用备用方式生成追问，请校对', 'warn');
+    }
+    renderThread();
+  } catch (err) {
+    Toast.show(err.message || '深挖失败，请稍后再试', 'err');
+    closeDrawer();
+  }
+}
+
+$('#btnDeep').onclick = async e => {
+  if (!curJob) { Toast.show('请先选择面试记录', 'err'); return; }
+  const btn = e.currentTarget;
+  loadThread();
+  if (thread && thread.probes && thread.probes.length) { openDrawer(); renderThread(); return; }
+  btn.disabled = true; btn.textContent = '探针中…';
+  try { await startDeepFlow(); } finally { btn.disabled = false; btn.textContent = '✦ AI 深挖'; }
+};
+
 $('#btnExpand').onclick = e => {
   const all = expanded.size === MODULES.length;
   expanded = new Set(all ? [] : MODULES.map(m => m.n));
@@ -289,7 +565,12 @@ $('#btnExpand').onclick = e => {
   e.currentTarget.textContent = all ? '全部展开' : '全部收起';
 };
 
-$('#selJob').onchange = e => { curJob = e.target.value; loadSaved(); };
+$('#selJob').onchange = e => {
+  curJob = e.target.value;
+  closeDrawer();          // 切换记录时收起追问面板，避免串台
+  loadSaved();
+  loadThread();
+};
 
 renderModules();
 fillJobs();
