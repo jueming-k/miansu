@@ -399,3 +399,40 @@ body.soft-in > *:not(nav.navbar):not(.net-warn):not(.fade){
 .net-warn .net-warn-x:hover{opacity:1}
 @keyframes netWarnIn{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
 @media(max-width:640px){.net-warn{top:96px;font-size:12.5px;padding:10px 12px}}
+
+/* ════════════════════════════════════════════════
+   v2.0 追问面板（右侧 380px 抽屉 / 720px 以下底部全宽堆叠）
+   只用已有 CSS 变量，无新增硬编码色值。
+   抽屉滑入 220ms ease；内容入场复用 .fade（IntersectionObserver 驱动）。
+   ════════════════════════════════════════════════ */
+.probe-drawer{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:92vw;z-index:120;
+  background:var(--card);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  border-left:1px solid var(--line);box-shadow:var(--sh);
+  display:flex;flex-direction:column;overscroll-behavior:contain;
+  animation:probeIn .22s ease}
+.probe-drawer::before{content:'';display:block;height:3px;flex:0 0 3px;background:var(--g-aurora)}
+@keyframes probeIn{from{transform:translateX(100%)}to{transform:none}}
+.probe-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:16px 20px;border-bottom:1px solid var(--line)}
+.probe-t{font-family:'Noto Serif SC','Songti SC',serif;font-weight:900;letter-spacing:-.035em;
+  font-size:17px;color:var(--tx)}
+.probe-sub{font-size:11.5px;color:var(--tx3);font-weight:600;margin-top:3px}
+.probe-body{flex:1;overflow-y:auto;padding:16px 16px 28px;
+  display:flex;flex-direction:column;gap:14px}
+.probe-q{border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--chip)}
+.probe-q-n{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;
+  font-size:12px;font-weight:800;color:var(--btn-tx);background:var(--g-aurora);flex:0 0 24px}
+.probe-q-quote{font-size:12px;color:var(--tx3);line-height:1.6;margin:10px 0 0;
+  border-left:3px solid var(--accent);padding-left:9px}
+.probe-q .textarea{margin-top:10px;min-height:78px;border-radius:14px}
+.probe-q-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.probe-finish{border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--chip)}
+/* 面板内对话气泡：AI 侧 --g-warm、用户侧 --g-cool（复用 .chat 结构，圆角与逐字稿区一致） */
+.probe-body .chat{max-width:100%}
+.probe-body .chat.iv .bubble{background:var(--g-warm);color:var(--btn-tx);border-color:transparent}
+/* 720px 断点：右侧抽屉 → 页面底部全宽堆叠，输入框不被键盘遮挡（面板内部滚动兜底） */
+@media(max-width:720px){
+  .probe-drawer{top:auto;left:0;width:100%;max-width:none;max-height:74vh;
+    border-left:none;border-top:1px solid var(--line);animation:probeUp .22s ease}
+  @keyframes probeUp{from{transform:translateY(100%)}to{transform:none}}
+}
