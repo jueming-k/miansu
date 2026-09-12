@@ -10,7 +10,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 /* 版本标记 —— 部署后打开「设置」页底部即可看到，
    用来确认线上跑的到底是不是刚拖上去的那一版（避免拖漏 / CDN 缓存误判）。 */
-const APP_BUILD = { ver: 'v1.9.21', at: '2026-09-02 13:15', feat: '根治「老标签页永远跑旧代码」：SPA 软导航从不重载 app.js，发版后用户若不硬刷新，老标签页会一直停留在旧行为（本次 v1.9.18→20 连续三轮"修了还说空白"的直接元凶之一）。现在 8 个页面 head 都带 <meta name="app-build">，softNavigate 拉取目标页时发现版本与本地 APP_BUILD 不一致 → 自动硬刷新接管。发版时 meta 与 APP_BUILD.ver 必须同步更新。' };
+const APP_BUILD = { ver: 'v2.0.0', at: '2026-09-12', feat: '追问式复盘 Agent：新增「✦ AI 深挖」三阶段链路（探针 3 问 → 逐条回答 → 收敛重写 8 字段），JSON schema 校验 + 自动重试 + 正则兜底五层降级，miansu:threads / miansu:agentlog 可观测日志（设置页可查可导出）。' };
 
 /* 说话人标签归一化：容忍 AI 回「说话人一」「Speaker 1」等写法 */
 const CN_DIGITS = { '一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9','十':'10' };
@@ -90,6 +90,22 @@ const Store = {
     all() { return Store._read('reviews', {}); },
     get(jid) { return Store.reviews.all()[jid] ?? null; },
     set(jid, data) { const a = Store.reviews.all(); a[jid] = { ...(a[jid] || {}), ...data, updatedAt: today() }; Store._write('reviews', a); }
+  },
+
+  /* ══════ v2.0 追问 Agent 状态（只增不改，前缀仍 miansu:） ══════
+     threads：按 jobId 存追问线程 { probes, answers, skipped, swaps, draft, stage, dropped, lastFill }
+     agentlog：每次 Agent 调用一条，最多保留 50 条，设置页可查看/导出 */
+  threads: {
+    all() { return Store._read('threads', {}); },
+    get(jid) { return Store.threads.all()[jid] ?? null; },
+    set(jid, data) { const a = Store.threads.all(); a[jid] = { ...(a[jid] || {}), ...data, updatedAt: today() }; Store._write('threads', a); },
+    remove(jid) { const a = Store.threads.all(); delete a[jid]; Store._write('threads', a); }
+  },
+
+  agentlog: {
+    all() { return Store._read('agentlog', []); },
+    add(entry) { const a = Store.agentlog.all(); a.unshift(entry); if (a.length > 50) a.length = 50; Store._write('agentlog', a); },
+    clear() { Store._write('agentlog', []); }
   },
 
   settings: {
@@ -808,6 +824,399 @@ function bindReveal() { $$('.fade').forEach(el => io.observe(el)); }
   }
   localStorage.setItem(NS + 'seedVer', '2');
 })();
+
+/* ════════════════════════════════════════════════
+   v2.0 追问式复盘 Agent（三阶段：探针 → 追问 → 收敛）
+   - 纯数据层，不碰 DOM；UI 编排在 review.html
+   - 调用链：Net.fetchLive 直连代理。不用 LLM.chat 的原因：它不转发
+     temperature，而五层降级的第 1 层必须把 temperature 真正传给模型
+   - 五层降级：JSON 约束 → extractJSON → schema 校验 → 自动重试 1 次
+     → 备用数据兜底，任何一层失败都不白屏
+   - 每次调用写 miansu:agentlog（≤50 条）；token 为估算值
+     （中英混排约 2 字符 ≈ 1 token）
+   ════════════════════════════════════════════════ */
+const Agent = {
+  /* 8 个 AI 目标字段（与 review.html 的 data-f 一一对应） */
+  FIELDS: ['point', 'strength', 'gap', 'better', 'knowledge', 'expression', 'next', 'wrongbook'],
+  TARGETS: ['knowledge', 'gap', 'point', 'better'],
+
+  /* 模板插值：用 split/join 而不是 replace，避免 transcript 里的 $ 符号被误当替换模式 */
+  fill(tpl, vars) {
+    return Object.entries(vars).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), tpl);
+  },
+
+  /* P4 · 探针（交接包 §5 原样） */
+  P4: `你是面试复盘专家。阅读面试逐字稿，找出候选人「说得含糊、明显答漏、或经不起追问」的地方，向他提问，帮他挖出真正的知识漏洞。
+
+要求：
+1. 输出 3 个问题，按价值从高到低排序。
+2. 每个问题的 quote 必须是逐字稿中真实出现过的原句，一字不改；找不到原句就不要问这条。
+3. question 要具体到能逼出细节，禁止「能再说说吗」这类空问法。
+4. target 只能是 knowledge / gap / point / better 之一。
+5. draft 里 8 个字段全部输出，没把握的留空串，不要编。
+6. 只输出 JSON，不要 markdown 代码块，不要任何解释性文字。
+
+逐字稿：
+{transcript}
+
+我卡壳的问题：
+{stuck}`,
+
+  /* P5 · 收敛（交接包 §5 原样） */
+  P5: `你是面试复盘专家。根据逐字稿与候选人对你追问的回答，产出一份结构化复盘。
+
+要求：
+1. 输出 8 个字段的 JSON：point / strength / gap / better / knowledge / expression / next / wrongbook。
+2. 每个字段 2-3 条，具体、可行动，禁止「需要加强学习」这类空话。
+3. better 要真的重写一版答案，不是评价原答案。
+4. wrongbook 输出可直接复习的知识点清单，每条一句话。
+5. 只输出 JSON，不要 markdown 代码块，不要任何解释性文字。
+
+逐字稿：
+{transcript}
+
+追问与回答：
+{qa}`,
+
+  /* P4b · 换一个问题（单条重新生成，与探针同温 0.7 保多样性） */
+  P4b: `你是面试复盘专家。针对下面这个追问目标，生成 1 个新的追问。
+
+要求：
+1. 只输出 1 个 JSON 对象：{"question":"…","quote":"…","target":"…"}。
+2. quote 必须是逐字稿中真实出现过的原句，一字不改；找不到原句就不要输出这条。
+3. question 要具体到能逼出细节，禁止「能再说说吗」这类空问法。
+4. target 只能是 knowledge / gap / point / better 之一。
+5. 不要与「已有的追问」重复。
+6. 只输出 JSON，不要 markdown 代码块，不要任何解释性文字。
+
+已有的追问：
+{existing}
+
+逐字稿：
+{transcript}
+
+我卡壳的问题：
+{stuck}`,
+
+  /* ── 层 2：JSON 提取（先取 ```json 代码块，失败则取首个 { 到最后一个 }，再 parse）── */
+  extractJSON(s) {
+    const src = String(s || '');
+    const block = src.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const body = block ? block[1] : src.slice(src.indexOf('{'), src.lastIndexOf('}') + 1);
+    try { return JSON.parse(body); } catch { return null; }
+  },
+
+  /* ── 层 3：schema 校验（探针）──
+     probes 数组 ≤3 条、target 合法、quote 必须在逐字稿中真实出现（去空格子串匹配，
+     防止 AI 编造）。命中失败的条目丢弃（dropped 计数），一条不剩则整体判无效。
+     id 重新按序归一为 p1..pN，保证 answers 键稳定。 */
+  validateProbe(data, transcript) {
+    if (!data || typeof data !== 'object' || !Array.isArray(data.probes)) return null;
+    const tNorm = String(transcript || '').replace(/\s+/g, '');
+    const kept = [];
+    let seen = 0;
+    for (const p of data.probes) {
+      if (!p || typeof p !== 'object') continue;
+      seen++;
+      const quote = String(p.quote || '').trim();
+      const question = String(p.question || '').trim();
+      const target = String(p.target || '').trim();
+      if (!quote || !question) continue;
+      if (!Agent.TARGETS.includes(target)) continue;
+      if (tNorm && !tNorm.includes(quote.replace(/\s+/g, ''))) continue;
+      kept.push({ id: 'p' + (kept.length + 1), quote, question, target });
+      if (kept.length >= 3) break;
+    }
+    if (!kept.length) return null;
+    const draft = {};
+    Agent.FIELDS.forEach(k => {
+      draft[k] = (data.draft && typeof data.draft[k] === 'string') ? data.draft[k].trim() : '';
+    });
+    return { probes: kept, draft, dropped: Math.max(0, seen - kept.length) };
+  },
+
+  /* ── 层 3：schema 校验（收敛）：8 字段对象，全空视为无效 ── */
+  validateReview(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+    const review = {};
+    let n = 0;
+    Agent.FIELDS.forEach(k => {
+      const v = typeof data[k] === 'string' ? data[k].trim() : '';
+      review[k] = v;
+      if (v) n++;
+    });
+    return n ? review : null;
+  },
+
+  /* ── 层 3：schema 校验（换一个问题）：单条 {question, quote, target} ── */
+  validateSwap(data, transcript) {
+    if (!data || typeof data !== 'object') return null;
+    const quote = String(data.quote || '').trim();
+    const question = String(data.question || '').trim();
+    const target = String(data.target || '').trim();
+    if (!quote || !question || !Agent.TARGETS.includes(target)) return null;
+    const tNorm = String(transcript || '').replace(/\s+/g, '');
+    if (tNorm && !tNorm.includes(quote.replace(/\s+/g, ''))) return null;
+    return { quote, question, target };
+  },
+
+  /* ── 上下文管理：逐字稿截断到 max 字，超长取头部+尾部各一半 ── */
+  truncate(text, max = 8000) {
+    const s = String(text || '');
+    if (s.length <= max) return s;
+    const half = Math.floor(max / 2);
+    return s.slice(0, half) + '\n……（中间内容过长，已省略）……\n' + s.slice(-half);
+  },
+
+  /* ── 问答摘要：每轮压到 150 字内；超过 6 轮时更早的轮次压缩成一段 ── */
+  summarizeQA(qa) {
+    const list = (qa || []).filter(x => x && x.question);
+    if (!list.length) return '（无追问回答）';
+    const cap = (s, n) => String(s || '').trim().slice(0, n);
+    const rows = list.map((x, i) => `${i + 1}. 问：${cap(x.question, 150)}\n   答：${cap(x.answer || '（跳过）', 150)}`);
+    if (rows.length <= 6) return rows.join('\n');
+    const early = list.slice(0, -6)
+      .map((x, i) => `${i + 1}. 问：${cap(x.question, 60)} 答：${cap(x.answer || '（跳过）', 60)}`)
+      .join('；');
+    return `更早的追问摘要：${early}\n\n${rows.slice(-6).join('\n')}`;
+  },
+
+  /* ── 单次流式调用：直连 Net.fetchLive，temperature 直达 DeepSeek ──
+     response_format 也一并带上：当前代理层（functions/ai.js，禁止改动）只透传
+     temperature、不透传 response_format，五层降级不依赖它；代理升级后自动生效。
+     超时放宽到 60s：推理模型吐思考链较慢，22s 默认值容易误杀。 */
+  async jsonCall(messages, { temperature = 0.3, maxTokens = 8192 } = {}) {
+    const res = await Net.fetchLive({
+      messages,
+      stream: true,
+      max_tokens: maxTokens,
+      temperature,
+      response_format: { type: 'json_object' }
+    }, { timeout: 60000 });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      throw new Error(`代理返回 ${res.status}${t ? ': ' + t.slice(0, 160) : ''}`);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '', raw = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split(/\r?\n/); buf = lines.pop();
+      for (let line of lines) {
+        line = line.trim();
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (payload === '[DONE]') return raw;
+        let ch;
+        try { ch = JSON.parse(payload).choices?.[0] || {}; } catch { continue; }
+        const delta = ch.delta || {};
+        if (delta.content) raw += delta.content;   // reasoning_content 不并入正文
+      }
+    }
+    return raw;
+  },
+
+  /* ── 通用 JSON 请求：一次调用，校验失败自动重试 1 次（temperature 降到 0）── */
+  async agentJSON(messages, validate, { temperature = 0.3, maxTokens = 8192 } = {}) {
+    let raw = await Agent.jsonCall(messages, { temperature, maxTokens });
+    let data = Agent.extractJSON(raw);
+    if (!validate(data)) {
+      raw = await Agent.jsonCall(
+        [...messages, { role: 'user', content: '上一次输出不是合法 JSON，请只输出 JSON。' }],
+        { temperature: 0, maxTokens }
+      );
+      data = Agent.extractJSON(raw);
+    }
+    return { raw, data, ok: !!validate(data) };
+  },
+
+  /* ── 可观测日志（token 为估算值）── */
+  _log(jobId, stage, ok, err, t0, tokInSrc, rawOut = '') {
+    const s = Store.settings.all();
+    const est = t => Math.ceil((typeof t === 'string' ? t : JSON.stringify(t)).length / 2);
+    Store.agentlog.add({
+      ts: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      jobId, stage,
+      model: (LLM.mode === 'live') ? (s.model || '') : 'demo',
+      ms: Date.now() - t0,
+      tokIn: est(tokInSrc), tokOut: est(rawOut),
+      ok,
+      err: String(err || '').slice(0, 120)
+    });
+  },
+  _logDemo(jobId, stage, note) {
+    Store.agentlog.add({
+      ts: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      jobId, stage, model: 'demo', ms: 0, tokIn: 0, tokOut: 0, ok: true,
+      err: String(note || '').slice(0, 120)
+    });
+  },
+
+  /* live 时才发起调用；返回 { attempted, ok, data, raw, err }。
+     网络失败沿用 Net.fallbackToDemo 自动切 DEMO 并弹黄条。 */
+  async _attempt(messages, validate, { temperature }) {
+    if (LLM.mode !== 'live') return { attempted: false, ok: false, data: null, raw: '', err: 'DEMO 模式' };
+    let ok = false, data = null, raw = '', err = '';
+    try {
+      const r = await Agent.agentJSON(messages, validate, { temperature });
+      raw = r.raw;
+      if (r.ok) { ok = true; data = r.data; }
+      else err = 'JSON 校验失败（已自动重试 1 次）';
+    } catch (e) {
+      if (e && (e.code === 'NETWORK' || e.code === 'NO_ENDPOINT' || e.code === 'NO_KEY')) {
+        Net.fallbackToDemo(e.message, e.code === 'NO_KEY');
+        err = e.code === 'NO_KEY' ? '未配置 Key' : '代理连接失败';
+      } else {
+        err = e.message || String(e);
+      }
+    }
+    return { attempted: true, ok, data, raw, err };
+  },
+
+  /* ── DEMO 占位：从逐字稿真实句子构造 3 条追问 ──
+     quote 直接截取原文（去空格后必是子串），保证「quote 能在逐字稿搜到」的自检
+     在 DEMO 模式下也成立。逐字稿为空时退回用卡壳问题造句。 */
+  demoProbe(transcript, stuck) {
+    const src = String(String(transcript || '').trim() ? transcript : (stuck || '')).trim();
+    const sents = src.split(/\n+/).map(s => s.trim()).filter(s => s.replace(/\s+/g, '').length >= 8);
+    const picks = [];
+    if (sents.length) {
+      picks.push(sents[0], sents[Math.floor(sents.length / 2)], sents[sents.length - 1]);
+      let i = 0;
+      while (picks.length < 3 && i < sents.length) {
+        const s = sents[i++];
+        if (!picks.includes(s)) picks.push(s);
+      }
+    }
+    const DEFS = [
+      { target: 'knowledge', q: '这条回答背后的知识点，你能完整讲清楚吗？如果面试官再往下追问一层，你会怎么接？' },
+      { target: 'gap', q: '现在回头看这句话，当时的回答缺了什么关键信息？' },
+      { target: 'point', q: '你觉得面试官问这个，真正想考察的是什么能力？' }
+    ];
+    const probes = picks.slice(0, 3).map((s, i) => ({
+      id: 'p' + (i + 1),
+      quote: s,
+      question: '（DEMO 示例追问）' + DEFS[i % 3].q,
+      target: DEFS[i % 3].target
+    }));
+    const draft = {
+      point: '（DEMO）本场主要考察项目细节与基础知识的衔接',
+      strength: '（DEMO）能完整讲述项目链路，被追问未露怯',
+      gap: stuck ? '（DEMO）卡壳点：' + String(stuck).split('\n')[0].slice(0, 50) : '（DEMO）部分追问缺少量化支撑',
+      better: '（DEMO）建议按「结论—依据—例子」结构重述核心项目',
+      knowledge: '（DEMO）把被追问的知识点整理成错题本卡片',
+      expression: '（DEMO）结论前置，先说答案再展开',
+      next: '（DEMO）24 小时内补全卡壳问题的标准答案',
+      wrongbook: '（DEMO）待复习：本次所有被追问的知识点'
+    };
+    return { probes, draft, dropped: 0 };
+  },
+
+  /* ── DEMO 占位：换一个问题（挑一句还没被用过的原句）── */
+  demoSwap(transcript, stuck, existing) {
+    const used = String(existing || '');
+    const src = String(String(transcript || '').trim() ? transcript : (stuck || '')).trim();
+    const sents = src.split(/\n+/).map(s => s.trim()).filter(s => s.replace(/\s+/g, '').length >= 8);
+    const quote = sents.find(s => !used.includes(s)) || sents[0] || '';
+    if (!quote) return null;
+    return {
+      quote,
+      question: '（DEMO 示例追问）换个角度：如果让你现在重新回答，你会怎么补充这一点？',
+      target: 'gap'
+    };
+  },
+
+  /* ── DEMO 占位：收敛（结合用户回答拼占位复盘，保证流程可完整演示）── */
+  demoConverge(stuck, qa, draft) {
+    const a1 = (qa && qa[0] && qa[0].answer) || '';
+    const d = draft || {};
+    return {
+      point: d.point || '（DEMO）本场主要考察项目细节与基础知识的衔接',
+      strength: d.strength || '（DEMO）能完整讲述项目链路，被追问未露怯',
+      gap: d.gap || (stuck ? '（DEMO）卡壳点：' + String(stuck).split('\n')[0].slice(0, 50) : '（DEMO）部分追问缺少量化支撑'),
+      better: d.better || '（DEMO）建议按「结论—依据—例子」结构重述核心项目',
+      knowledge: d.knowledge || '（DEMO）把被追问的知识点整理成错题本卡片',
+      expression: d.expression || (a1 ? '（DEMO）追问补充：' + a1.slice(0, 40) : '（DEMO）结论前置，先说答案再展开'),
+      next: d.next || '（DEMO）24 小时内补全卡壳问题的标准答案',
+      wrongbook: d.wrongbook || '（DEMO）待复习：本次所有被追问的知识点'
+    };
+  },
+
+  /* ═══ 阶段一 · 探针：3 问 + draft。失败走 DEMO 占位，绝不抛错 ═══ */
+  async runProbe({ jobId, transcript, stuck, filled = '' }) {
+    const t0 = Date.now();
+    const messages = [
+      {
+        role: 'system',
+        content: Agent.fill(Agent.P4, {
+          transcript: Agent.truncate(transcript, 8000),
+          stuck: stuck || '（未填写）'
+        })
+      },
+      { role: 'user', content: `已填写的字段（非空才列出，写 draft 时可参考）：\n${filled || '（暂无）'}` }
+    ];
+    const r = await Agent._attempt(messages, d => Agent.validateProbe(d, transcript), { temperature: 0.7 });
+    if (r.ok) { Agent._log(jobId, 'probe', true, '', t0, messages); return { ...r.data, fallback: false, demo: false }; }
+    if (r.attempted) Agent._log(jobId, 'probe', false, r.err, t0, messages);
+    /* 层 5 兜底：用逐字稿真实句子构造占位追问，流程永不白屏 */
+    Agent._logDemo(jobId, 'probe', r.attempted ? '降级 DEMO 占位数据' : 'DEMO 模式');
+    return { ...Agent.demoProbe(transcript, stuck), fallback: true, demo: true };
+  },
+
+  /* ═══ 阶段二 · 换一个问题（单条重新生成）═══ */
+  async swapProbe({ jobId, transcript, stuck, existing = '' }) {
+    const t0 = Date.now();
+    const messages = [
+      {
+        role: 'system',
+        content: Agent.fill(Agent.P4b, {
+          existing: existing || '（无）',
+          transcript: Agent.truncate(transcript, 6000),
+          stuck: stuck || '（未填写）'
+        })
+      },
+      { role: 'user', content: '请输出 1 个新的追问 JSON。' }
+    ];
+    const r = await Agent._attempt(messages, d => Agent.validateSwap(d, transcript), { temperature: 0.7 });
+    if (r.ok) { Agent._log(jobId, 'thread', true, '', t0, messages); return { probe: r.data, fallback: false, demo: false }; }
+    if (r.attempted) Agent._log(jobId, 'thread', false, r.err, t0, messages);
+    Agent._logDemo(jobId, 'thread', r.attempted ? '降级 DEMO 占位数据' : 'DEMO 模式');
+    return { probe: Agent.demoSwap(transcript, stuck, existing), fallback: true, demo: true };
+  },
+
+  /* ═══ 阶段三 · 收敛：结合问答重写 8 字段 ═══
+     失败降级：live 拿回过正文 → 走 mapSections 正则解析（解析到几个算几个）；
+     网络失败或 DEMO → 走占位收敛。两种情况都不抛错。 */
+  async runConverge({ jobId, transcript, stuck, qa, draft, mapFallback }) {
+    const t0 = Date.now();
+    const messages = [
+      {
+        role: 'system',
+        content: Agent.fill(Agent.P5, {
+          transcript: Agent.truncate(transcript, 8000),
+          qa: Agent.summarizeQA(qa)
+        })
+      },
+      { role: 'user', content: `我卡壳的问题：\n${stuck || '（未填写）'}\n\nAI 先填的草稿（供参考，可修正）：\n${JSON.stringify(draft || {})}` }
+    ];
+    const r = await Agent._attempt(messages, Agent.validateReview, { temperature: 0.3 });
+    if (r.ok) { Agent._log(jobId, 'converge', true, '', t0, messages, r.raw); return { review: r.data, fallback: false, demo: false }; }
+    if (r.attempted) Agent._log(jobId, 'converge', false, r.err, t0, messages, r.raw);
+    if (r.attempted && r.raw) {
+      /* 层 5：v1 的 mapSections 正则解析 markdown，解析到几个算几个（mapSections 由 review.html 传入） */
+      const mapped = (typeof mapFallback === 'function' && mapFallback(r.raw)) || {};
+      const review = {};
+      Agent.FIELDS.forEach(k => { review[k] = (mapped && mapped[k]) ? String(mapped[k]).trim() : ''; });
+      Agent._logDemo(jobId, 'converge', '五层降级：正则解析');
+      return { review, fallback: true, demo: false };
+    }
+    Agent._logDemo(jobId, 'converge', r.attempted ? '降级 DEMO 占位数据' : 'DEMO 模式');
+    return { review: Agent.demoConverge(stuck, qa, draft), fallback: true, demo: true };
+  }
+};
 
 /* ══════ 页面入口 ══════ */
 const App = {
