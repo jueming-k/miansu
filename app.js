@@ -10,7 +10,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 /* 版本标记 —— 部署后打开「设置」页底部即可看到，
    用来确认线上跑的到底是不是刚拖上去的那一版（避免拖漏 / CDN 缓存误判）。 */
-const APP_BUILD = { ver: 'v2.0.0', at: '2026-09-12', feat: '追问式复盘 Agent：新增「✦ AI 深挖」三阶段链路（探针 3 问 → 逐条回答 → 收敛重写 8 字段），JSON schema 校验 + 自动重试 + 正则兜底五层降级，miansu:threads / miansu:agentlog 可观测日志（设置页可查可导出）。' };
+const APP_BUILD = { ver: 'v2.0.1', at: '2026-09-12', feat: '追问式复盘 Agent：新增「✦ AI 深挖」三阶段链路（探针 3 问 → 逐条回答 → 收敛重写 8 字段），JSON schema 校验 + 自动重试 + 正则兜底五层降级，miansu:threads / miansu:agentlog 可观测日志（设置页可查可导出）。v2.0.1：P4/P5/P4b 三处 prompt 增加输出结构硬约束（禁数组、禁中文键），修复探针阶段模型返回数组导致解析失败的问题。' };
 
 /* 说话人标签归一化：容忍 AI 回「说话人一」「Speaker 1」等写法 */
 const CN_DIGITS = { '一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9','十':'10' };
@@ -855,6 +855,11 @@ const Agent = {
 4. target 只能是 knowledge / gap / point / better 之一。
 5. draft 里 8 个字段全部输出，没把握的留空串，不要编。
 6. 只输出 JSON，不要 markdown 代码块，不要任何解释性文字。
+7. 必须输出一个 JSON 对象，禁止输出数组，也禁止再包一层其它结构。
+8. draft 的键必须使用英文 point / strength / gap / better / knowledge / expression / next / wrongbook，禁止使用任何中文键名，也不得增删键。
+
+顶层结构必须严格如下：
+{"probes":[{"id":"p1","quote":"...","question":"...","target":"knowledge"}],"draft":{"point":"","strength":"","gap":"","better":"","knowledge":"","expression":"","next":"","wrongbook":""}}
 
 逐字稿：
 {transcript}
@@ -871,6 +876,11 @@ const Agent = {
 3. better 要真的重写一版答案，不是评价原答案。
 4. wrongbook 输出可直接复习的知识点清单，每条一句话。
 5. 只输出 JSON，不要 markdown 代码块，不要任何解释性文字。
+6. 必须输出一个 JSON 对象，禁止输出数组，也禁止再包一层其它结构。
+7. 键必须使用英文 point / strength / gap / better / knowledge / expression / next / wrongbook，禁止使用任何中文键名，也不得增删键。
+
+顶层结构必须严格如下：
+{"point":"","strength":"","gap":"","better":"","knowledge":"","expression":"","next":"","wrongbook":""}
 
 逐字稿：
 {transcript}
@@ -888,6 +898,11 @@ const Agent = {
 4. target 只能是 knowledge / gap / point / better 之一。
 5. 不要与「已有的追问」重复。
 6. 只输出 JSON，不要 markdown 代码块，不要任何解释性文字。
+7. 必须输出一个 JSON 对象，禁止输出数组，也禁止再包一层其它结构。
+8. 键必须使用英文 question / quote / target，禁止使用任何中文键名，也不得增删键。
+
+顶层结构必须严格如下：
+{"question":"","quote":"","target":"knowledge"}
 
 已有的追问：
 {existing}
