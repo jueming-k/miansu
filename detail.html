@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-build" content="v1.9.21">
+<meta name="app-build" content="v2.0.0">
 <title>逐字稿 · AI 总结 · 面溯</title>
 <link rel="stylesheet" href="styles.css">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -240,6 +240,18 @@ $$('.seg-btn').forEach(btn => {
   };
 });
 
+/* ════ 显示/隐藏容器 helper ════
+   .fade 元素靠 IntersectionObserver 加 .in 入场，但 display:none → block 的瞬间
+   observer 可能没及时触发（尤其元素在视口外时），导致 opacity:0 看不见。
+   showBox 移除 hide 后立即用双 rAF 加 .in，确保入场过渡可靠生效。 */
+function showBox(el) {
+  if (!el) return;
+  el.classList.remove('hide');
+  if (el.classList.contains('fade')) {
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+  }
+}
+
 /* ══════ 路径 A：粘贴逐字稿 ══════ */
 function saveReview(extra = {}) {
   const jid = $('#selJob').value;
@@ -255,7 +267,7 @@ function loadTranscript(list, okMsg, autoDetect = false) {
   curStep = stepOfSummarize();
   renderSteps();
   renderTranscript();
-  $('#transBox').classList.remove('hide');
+  showBox($('#transBox'));
 
   const anon = [...new Set(list.filter(l => l.who.startsWith('说话人')).map(l => l.who))];
   // 关联面试后自动保存，无需手动点
@@ -300,6 +312,8 @@ $('#btnParse').onclick = async () => {
   const { list, unlabeled } = buildList($('#rawText').value);
   if (!list.length) { Toast.show('没有解析到内容，请先粘贴逐字稿', 'err'); return; }
   if (!loadTranscript(list, `已解析 ${list.length} 句`, false)) return;
+  // 滚到逐字稿区，让用户先看到解析结果（否则总结弹出后逐字稿在视口外容易被忽略）
+  $('#transBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (unlabeled) Toast.show('未检测到说话人标签，已按对话轮次自动切分为两人，角色请点气泡校正', 'warn');
   const anon = [...new Set(transcript.filter(l => l.who.startsWith('说话人')).map(l => l.who))];
   if (anon.length && LLM.mode === 'live') {
@@ -348,7 +362,7 @@ async function handle(f) {
     speakerRole = {};
     curStep = stepOfSummarize(); renderSteps();
     renderTranscript(); renderChooser();
-    $('#transBox').classList.remove('hide');
+    showBox($('#transBox'));
     if (saveReview()) $('#saveHint').textContent = '已自动保存';
     else $('#saveHint').textContent = '选择关联面试后即可自动保存';
     Toast.show('转写完成，请校对后生成总结', 'ok');
@@ -508,7 +522,7 @@ async function doSummarize() {
   }
 
   btn.disabled = true; btn.textContent = '总结中…';
-  $('#sumBox').classList.remove('hide');
+  showBox($('#sumBox'));
   $('#sumContent').innerHTML = '<span class="caret"></span>';
 
   const text = transcript.map(l => `${resolveWho(l.who)}：${l.text}`).join('\n');
@@ -600,10 +614,10 @@ if (preJob) {
     transcript = saved.transcript;
     speakerRole = saved.speakerRole || {};
     curStep = stepOfSummarize(); renderSteps(); renderTranscript();
-    $('#transBox').classList.remove('hide');
+    showBox($('#transBox'));
     $('#saveHint').textContent = '已载入已保存记录';
     if (saved.summary) {
-      $('#sumBox').classList.remove('hide');
+      showBox($('#sumBox'));
       $('#sumContent').innerHTML = renderSummary(saved.summary);
       curStep = stepDone(); renderSteps();
     }
