@@ -10,7 +10,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 /* 版本标记 —— 部署后打开「设置」页底部即可看到，
    用来确认线上跑的到底是不是刚拖上去的那一版（避免拖漏 / CDN 缓存误判）。 */
-const APP_BUILD = { ver: 'v2.0.2', at: '2026-09-13', feat: '追问式复盘 Agent v2.0.2：导航修复——①hover 不再与当前页共用同一颗药丸（只提亮文字），双高亮消失；②≤480px 隐藏品牌副标题并收紧间距，修复窄屏下汉堡按钮被推出屏幕、菜单无法打开的问题；③品牌名改用背景层文字色，深色主题下恢复可见。' };
+const APP_BUILD = { ver: 'v2.0.3', at: '2026-09-13', feat: '追问式复盘 Agent v2.0.3：修复首屏导航闪烁与平移——8 个静态页导航补齐完整控件（LIVE/主题/头像/汉堡/移动菜单），renderNav 改为原地更新激活态与登录态、不再重建整棵导航（原重建导致菜单平移 99px）；主题图标初始同步。' };
 
 /* 说话人标签归一化：容忍 AI 回「说话人一」「Speaker 1」等写法 */
 const CN_DIGITS = { '一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9','十':'10' };
@@ -715,10 +715,13 @@ const NAV = [
 ];
 
 function renderNav(current) {
-  const host = $('[data-nav]');
-  /* SPA 软导航：导航栏节点常驻 DOM，仅更新激活态，绝不重建 → 纹丝不动、零位移 */
+  /* v2.0.3：静态页导航已带完整控件（LIVE/主题/头像/汉堡/m-menu），
+     这里只原地更新激活态与登录态，绝不重建整棵导航。
+     原来的 replaceWith 重建是首屏"导航闪烁 + 菜单平移"的根源：
+     静态残缺版 nav-right 只有 34px（1 个头像），JS 版 233px（5 控件），
+     app.js 一下载完菜单就被推挤平移 99px；网络稍慢时肉眼可见。 */
   const live = document.querySelector('nav.navbar');
-  if (window.__SPA && live && !host) {
+  if (live) {
     live.querySelectorAll('.menu a, .m-menu a').forEach(a => {
       const key = (a.getAttribute('href') || '').replace('.html', '') || 'index';
       const on = key === current;
@@ -728,10 +731,22 @@ function renderNav(current) {
         a.style.color = on ? 'var(--tx)' : 'var(--nav-tx)';
       }
     });
+    /* 登录态头像（静态页只能预置未登录态） */
+    const isIn = (typeof Store !== 'undefined' && Store.account) ? Store.account.isIn : false;
+    const accName = (typeof Store !== 'undefined' && Store.account) ? Store.account.name : '';
+    const av = live.querySelector('.avatar-btn');
+    if (av) {
+      av.classList.toggle('on', isIn);
+      av.title = isIn ? esc(accName) + ' · 个人中心' : '登录 / 个人中心';
+      if (isIn && accName) av.textContent = accName.slice(0, 1).toUpperCase();
+      else av.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    }
     return;
   }
+
+  /* 兜底：页面上没有导航时才构建（正常不会走到） */
+  const host = $('[data-nav]');
   if (!host) return;
-  /* 默认（无 data-theme）= 深蓝紫底；显式 light = 浅蓝底 */
   const dark = document.documentElement.getAttribute('data-theme') !== 'light';
   const safeMode = (typeof LLM !== 'undefined' && LLM.mode) ? LLM.mode : 'demo';
   const isIn = (typeof Store !== 'undefined' && Store.account) ? Store.account.isIn : false;
@@ -782,14 +797,22 @@ function renderNav(current) {
   const saved = localStorage.getItem(KEY);
   if (saved) document.documentElement.setAttribute('data-theme', saved);
 
+  /* v2.0.3：初始同步日/月图标（静态导航的图标写死为默认深色主题态，
+     若用户存了 light 主题，首帧图标会错，这里在首帧前纠正） */
+  const syncThemeIcons = () => {
+    const cur = document.documentElement.getAttribute('data-theme') !== 'light';
+    document.querySelectorAll('[data-icon-moon]').forEach(el => el.style.display = cur ? 'none' : 'block');
+    document.querySelectorAll('[data-icon-sun]').forEach(el => el.style.display = cur ? 'block' : 'none');
+  };
+  syncThemeIcons();
+
   document.addEventListener('click', e => {
     if (!e.target.closest('[data-theme-toggle]')) return;
     /* 默认(深蓝紫底) ⇄ light(浅蓝底) */
     const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem(KEY, next);
-    document.querySelectorAll('[data-icon-moon]').forEach(el => el.style.display = next === 'dark' ? 'none' : 'block');
-    document.querySelectorAll('[data-icon-sun]').forEach(el => el.style.display = next === 'dark' ? 'block' : 'none');
+    syncThemeIcons();
   });
 })();
 

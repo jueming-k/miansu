@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-build" content="v2.0.2">
+<meta name="app-build" content="v2.0.3">
 <title>关于项目 · 面溯</title>
 <link rel="stylesheet" href="styles.css">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -41,14 +41,30 @@
         <a href="detail.html">录音转写</a>
         <a href="review.html">面试复盘</a>
         <a href="resume.html">改简历</a>
-        <a href="about.html">关于项目</a>
+        <a href="about.html" class="on">关于项目</a>
         <a href="settings.html">设置</a>
       </div>
       <div class="nav-right">
+        <span class="tag" id="modeBadge" style="background:var(--nav-h);color:var(--on-bg);border-color:transparent" title="正在检查网络…">LIVE</span>
+        <button class="icon-btn" data-theme-toggle title="切换深浅主题">
+          <svg data-icon-moon width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <svg data-icon-sun width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:block"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+        <a class="btn btn-on-bg btn-sm btn-main-hide" href="settings.html">配置 Key</a>
         <a class="avatar-btn" href="profile.html" title="登录 / 个人中心">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </a>
+        <button class="burger" data-burger><span></span><span></span><span></span></button>
       </div>
+    </div>
+    <div class="m-menu" data-mobile-menu style="display:none;flex-direction:column;padding:10px 20px 18px;border-top:1px solid var(--line)">
+      <a href="index.html">首页</a>
+      <a href="records.html">面试记录</a>
+      <a href="detail.html">录音转写</a>
+      <a href="review.html">面试复盘</a>
+      <a href="resume.html">改简历</a>
+      <a href="about.html">关于项目</a>
+      <a href="settings.html">设置</a>
     </div>
   </nav>
 </div>
