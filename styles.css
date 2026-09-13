@@ -78,14 +78,16 @@ h1 + p,h1 + p.muted,h1 + p.small,h1 + p.small.muted{color:var(--on-bg-2)}
       display:flex;align-items:center;justify-content:center;color:var(--bg-solid);
       font-weight:900;font-size:16px;flex:0 0 34px;
       box-shadow:0 4px 14px rgba(0,0,0,.16)}
-.brand-name{font-size:20px;color:var(--tx);line-height:1}
+/* v2.0.2：品牌名站在导航（背景层）上，必须用背景层文字色；原 --tx 是卡片内深色文字，深色主题下几乎不可见 */
+.brand-name{font-size:20px;color:var(--on-bg);line-height:1}
 .brand-sub{font-size:9.5px;color:var(--tx3);font-weight:600;letter-spacing:.14em;
            margin-top:3px;display:block}
 
 .menu{display:flex;align-items:center;gap:2px}
 .menu a{padding:7px 11px;border-radius:12px;font-size:13px;font-weight:500;
         color:var(--nav-tx);transition:background .2s,color .2s;white-space:nowrap}
-.menu a:hover{background:var(--nav-h);color:var(--tx)}
+/* v2.0.2：hover 不再铺药丸底色（与当前页 .on 的药丸区分开，避免"两颗一样的药丸同时亮"），只提亮文字 */
+.menu a:hover{color:var(--on-bg)}
 .menu a.on{background:var(--nav-h);color:var(--tx);font-weight:600}
 
 .nav-right{display:flex;align-items:center;gap:9px;flex:0 0 auto}
@@ -363,6 +365,18 @@ h1 + p,h1 + p.muted,h1 + p.small,h1 + p.small.muted{color:var(--on-bg-2)}
   .nav-in,.wrap,.foot-in{padding-left:20px;padding-right:20px}
   .burger{display:flex}
   .btn-main-hide{display:none}
+}
+/* v2.0.2 窄屏导航防溢出：brand（含长副标题）+ LIVE/主题/头像/汉堡 右侧按钮组
+   最小宽约 460px，≤480px 时右侧按钮会被推出视口、汉堡点不到。
+   隐藏副标题（省约 110px）+ 收紧间距，360px 起完整可见。 */
+@media(max-width:480px){
+  .brand-sub{display:none}
+  .nav-in{padding-left:16px;padding-right:16px;gap:12px}
+  .nav-right{gap:6px}
+}
+@media(max-width:380px){
+  .icon-btn{width:34px;height:34px}
+  .avatar-btn{width:30px;height:30px;flex:0 0 30px}
 }
 @media(max-width:640px){
   .g2,.g3{grid-template-columns:1fr}
