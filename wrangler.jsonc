@@ -1,11 +1,13 @@
 {
   // 面溯 · Cloudflare Workers（静态资产 + /ai API）
-  // 静态资产优先：请求先匹配根目录静态文件，未命中（如 /ai）走 worker.js
+  // v2.0.4：run_worker_first 让 HTML 请求先进 worker（no-store 头重写生效），
+  // 其余静态资产仍由 assets 层直接伺服，不受影响。
   "name": "miansu",
   "compatibility_date": "2025-09-01",
   "main": "worker.js",
   "assets": {
     "directory": ".",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": ["/", "/index.html", "/records.html", "/detail.html", "/review.html", "/resume.html", "/about.html", "/settings.html", "/profile.html"]
   }
 }
