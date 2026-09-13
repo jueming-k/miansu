@@ -51,6 +51,9 @@
 }
 
 *{font-family:'Inter','Noto Sans SC',system-ui,sans-serif;box-sizing:border-box}
+/* v2.0.5：给滚动条永久预留槽位 —— 页面高度不同导致滚动条出现/消失时，
+   可视宽度会差 ~17px，居中布局整体左右跳动（点导航切页时最明显） */
+html{scrollbar-gutter:stable}
 body{margin:0;min-height:100vh;color:var(--tx);background:var(--bg);
      background-attachment:fixed;transition:background .45s ease,color .45s ease;
      -webkit-font-smoothing:antialiased}
@@ -452,3 +455,131 @@ body.soft-in > *:not(nav.navbar):not(.net-warn):not(.fade){
 }
 
 /* v2.0.2 build trigger 2026-09-13：触发 CF 重新构建 */
+
+
+/* ══════════════════════════════════════════════════════════════
+   v2.0.5 · 页面级样式（原内联在各页 <head>）
+   为什么要合并过来：SPA 软导航的 _swapContent 只替换 body，
+   内联在 head 的样式不会跟着换 → 从「面试复盘」点回「首页」时
+   首页的 .hero / .wk-grid 全部失效，排版烂掉（被误认为"退回旧版本"）。
+   合进全局样式后，软导航不再依赖 head 里的页面样式。
+   已校验：8 页之间无同名选择器冲突，可安全合并。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 来自 index.html ── */
+/* Hero */
+  .hero{padding:84px 0 96px;text-align:center}
+  .hero h1{font-family:'Noto Serif SC','Songti SC',serif;font-weight:900;
+           font-size:clamp(64px,13vw,150px);letter-spacing:-.06em;
+           line-height:1;margin:0 0 30px;color:var(--on-bg)}
+  .hero-s1{font-size:clamp(15px,2vw,20px);font-weight:600;color:var(--on-bg);
+           letter-spacing:.05em;line-height:1.7}
+  .hero-s2{font-size:14px;color:var(--on-bg-2);letter-spacing:.06em;margin-top:8px}
+
+  /* 登录标签：站在背景上，随主题反色 */
+  .hero-login{display:inline-flex;align-items:center;gap:8px;margin-top:28px;
+              background:var(--nav-h);color:var(--on-bg);border:none;border-radius:999px;
+              padding:10px 21px;font-size:13.5px;font-weight:600;cursor:pointer;
+              transition:transform .2s,opacity .2s}
+  .hero-login:hover{transform:translateY(-2px);opacity:.9}
+
+  /* 主区：左环形 + 右（周历 + 时间轴） */
+  .main-grid{display:grid;grid-template-columns:minmax(238px,.62fr) 2fr;gap:20px;align-items:start}
+
+  /* 周历（横向 7 天） */
+  .wk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .wkday{display:flex;flex-direction:column;align-items:center;justify-content:center;
+         border-radius:18px;padding:13px 0 12px;cursor:pointer;position:relative;
+         transition:background .2s,transform .2s}
+  .wkday:hover{background:var(--nav-h);transform:translateY(-2px)}
+  .wkday .wd{font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.04em}
+  .wkday .dn{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-top:4px;
+             line-height:1;color:var(--tx)}
+  .wkday.today .dn{color:var(--accent)}
+  .wkday.today .wd{color:var(--accent)}
+  .wkday.sel{background:var(--accent-soft)}
+  .wkdot{position:absolute;bottom:6px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
+
+  @media(max-width:880px){
+    .main-grid{grid-template-columns:1fr}
+    .hero{padding:56px 0 62px}
+    .wkday .dn{font-size:17px}
+  }
+
+/* ── 来自 detail.html ── */
+.step-line{flex:0 0 34px}
+  .editable{outline:none;transition:background .2s}
+  .editable:focus{background:var(--accent-soft)}
+  .sum-block{padding:16px 18px;border-radius:16px;background:var(--chip);
+             border:1px solid var(--line);margin-bottom:12px}
+  .sum-h{font-size:12.5px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  /* 来源切换：本地转写 / 粘贴逐字稿 */
+  .seg{display:inline-flex;gap:4px;padding:4px;border-radius:999px;
+       background:var(--chip);border:1px solid var(--line)}
+  .seg-btn{padding:7px 16px;border-radius:999px;border:none;background:transparent;
+           font-size:13px;font-weight:700;color:var(--tx3);cursor:pointer;
+           font-family:inherit;transition:all .2s;white-space:nowrap}
+  .seg-btn:hover{color:var(--tx)}
+  .seg-btn.on{background:var(--card);color:var(--tx);box-shadow:0 2px 8px rgba(15,23,42,.12)}
+  .fmt{font-size:12px;color:var(--tx3);line-height:1.9}
+  .fmt code{background:var(--chip);border:1px solid var(--line);border-radius:6px;
+            padding:1px 6px;font-size:11.5px}
+  .who-toggle{cursor:pointer;user-select:none}
+  .who-toggle:hover{filter:brightness(.94)}
+  .who-s{background:var(--accent-soft);color:var(--tx2);border:1px dashed var(--line)}
+  .who-pick{display:flex;flex-direction:column}
+  .chip{padding:6px 16px;border-radius:999px;border:1px solid var(--line);
+        background:var(--card);font-size:13px;font-weight:700;color:var(--tx3);
+        cursor:pointer;font-family:inherit;transition:all .18s}
+  .chip:hover{color:var(--tx)}
+  .chip-on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── 来自 review.html ── */
+.rv-body{padding-top:18px}
+  .rv-fields{display:grid;grid-template-columns:repeat(2,1fr);gap:0 16px}
+  .rv-fields .field{margin-bottom:14px}
+  @media(max-width:720px){.rv-fields{grid-template-columns:1fr}}
+
+/* ── 来自 resume.html ── */
+.io-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+  @media(max-width:900px){.io-grid{grid-template-columns:1fr}}
+  .out{font-size:14px;line-height:1.85;color:var(--tx2);min-height:160px;
+       white-space:pre-wrap;word-break:break-word}
+
+/* ── 来自 about.html ── */
+.dec{border:1px solid var(--line);border-radius:20px;padding:20px 22px;margin-bottom:14px;
+       background:var(--card);backdrop-filter:blur(20px)}
+  .dec-q{font-size:15px;font-weight:700;margin-bottom:8px;display:flex;gap:9px;align-items:flex-start}
+  .dec-n{width:22px;height:22px;border-radius:8px;background:var(--g-aurora);color:#fff;
+         display:grid;place-items:center;font-size:11px;font-weight:800;flex:0 0 22px;margin-top:1px}
+  .dec-a{font-size:13.5px;line-height:1.8;color:var(--tx2)}
+  .dec-a b{color:var(--tx);font-weight:700}
+  .cost{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+        font-size:12.5px;color:var(--tx3)}
+  /* v2.0.5：--chip 在深色主题下是深色块，配 --tx2 深字看不见 → 改白底卡片 */
+  pre{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+      font-size:12.5px;line-height:1.75;overflow-x:auto;margin:0;
+      font-family:ui-monospace,'SF Mono',Consolas,monospace;color:var(--tx2);white-space:pre-wrap}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:8px 18px;font-size:13.5px}
+  .kv dt{color:var(--tx3);font-weight:700} .kv dd{margin:0;color:var(--tx2);line-height:1.7}
+  @media(max-width:720px){.kv{grid-template-columns:1fr;gap:2px 0}.kv dd{margin-bottom:10px}}
+
+/* ── 来自 settings.html ── */
+.switch{width:52px;height:29px;border-radius:999px;border:1px solid var(--line);
+          background:var(--chip);position:relative;cursor:pointer;transition:background .25s;flex:0 0 52px}
+  .switch::after{content:'';position:absolute;top:3px;left:3px;width:21px;height:21px;
+                 border-radius:50%;background:var(--tx3);transition:all .25s}
+  .switch.on{background:var(--g-mint)}
+  .switch.on::after{left:26px;background:#fff}
+  .card-row{display:flex;align-items:center;justify-content:space-between;gap:16px;
+            padding:15px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .card-row:last-child{border-bottom:none}
+
+/* ── 来自 profile.html ── */
+.pf-av{width:76px;height:76px;border-radius:26px;display:grid;place-items:center;
+         font-size:30px;font-weight:900;flex:0 0 76px}
+  .pf-name{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .pf-sub{font-size:12.5px;color:var(--tx3);font-weight:600;margin-top:4px}
+  .row-card{display:flex;align-items:center;gap:16px;padding:16px 0;
+            border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .row-card:last-child{border-bottom:none}

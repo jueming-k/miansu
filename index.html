@@ -3,50 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-build" content="v2.0.4">
+<meta name="app-build" content="v2.0.5">
 <title>面溯 · 面试有迹，成长可溯</title>
-<link rel="stylesheet" href="styles.css?v=v2.0.4">
+<link rel="stylesheet" href="styles.css?v=v2.0.5">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-  /* Hero */
-  .hero{padding:84px 0 96px;text-align:center}
-  .hero h1{font-family:'Noto Serif SC','Songti SC',serif;font-weight:900;
-           font-size:clamp(64px,13vw,150px);letter-spacing:-.06em;
-           line-height:1;margin:0 0 30px;color:var(--on-bg)}
-  .hero-s1{font-size:clamp(15px,2vw,20px);font-weight:600;color:var(--on-bg);
-           letter-spacing:.05em;line-height:1.7}
-  .hero-s2{font-size:14px;color:var(--on-bg-2);letter-spacing:.06em;margin-top:8px}
-
-  /* 登录标签：站在背景上，随主题反色 */
-  .hero-login{display:inline-flex;align-items:center;gap:8px;margin-top:28px;
-              background:var(--nav-h);color:var(--on-bg);border:none;border-radius:999px;
-              padding:10px 21px;font-size:13.5px;font-weight:600;cursor:pointer;
-              transition:transform .2s,opacity .2s}
-  .hero-login:hover{transform:translateY(-2px);opacity:.9}
-
-  /* 主区：左环形 + 右（周历 + 时间轴） */
-  .main-grid{display:grid;grid-template-columns:minmax(238px,.62fr) 2fr;gap:20px;align-items:start}
-
-  /* 周历（横向 7 天） */
-  .wk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
-  .wkday{display:flex;flex-direction:column;align-items:center;justify-content:center;
-         border-radius:18px;padding:13px 0 12px;cursor:pointer;position:relative;
-         transition:background .2s,transform .2s}
-  .wkday:hover{background:var(--nav-h);transform:translateY(-2px)}
-  .wkday .wd{font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.04em}
-  .wkday .dn{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-top:4px;
-             line-height:1;color:var(--tx)}
-  .wkday.today .dn{color:var(--accent)}
-  .wkday.today .wd{color:var(--accent)}
-  .wkday.sel{background:var(--accent-soft)}
-  .wkdot{position:absolute;bottom:6px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
-
-  @media(max-width:880px){
-    .main-grid{grid-template-columns:1fr}
-    .hero{padding:56px 0 62px}
-    .wkday .dn{font-size:17px}
-  }
-</style>
   <link rel="icon" href="favicon.svg">
 </head>
 <body>
@@ -68,7 +28,6 @@
         <a href="settings.html">设置</a>
       </div>
       <div class="nav-right">
-        <span class="tag" id="modeBadge" style="background:var(--nav-h);color:var(--on-bg);border-color:transparent" title="正在检查网络…">LIVE</span>
         <button class="icon-btn" data-theme-toggle title="切换深浅主题">
           <svg data-icon-moon width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
           <svg data-icon-sun width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:block"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -166,11 +125,11 @@
 <div class="foot">
   <div class="foot-in">
     <span>面溯 · 纯静态 · 数据不出浏览器</span>
-    <span class="mono">v2.0.4</span>
+    <span class="mono">v2.0.5</span>
   </div>
 </div>
 
-<script src="app.js?v=v2.0.4"></script>
+<script src="app.js?v=v2.0.5"></script>
 <script>
 App.mount('index');
 

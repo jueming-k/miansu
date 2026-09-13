@@ -3,21 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-build" content="v2.0.4">
+<meta name="app-build" content="v2.0.5">
 <title>设置 · 面溯</title>
-<link rel="stylesheet" href="styles.css?v=v2.0.4">
+<link rel="stylesheet" href="styles.css?v=v2.0.5">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-  .switch{width:52px;height:29px;border-radius:999px;border:1px solid var(--line);
-          background:var(--chip);position:relative;cursor:pointer;transition:background .25s;flex:0 0 52px}
-  .switch::after{content:'';position:absolute;top:3px;left:3px;width:21px;height:21px;
-                 border-radius:50%;background:var(--tx3);transition:all .25s}
-  .switch.on{background:var(--g-mint)}
-  .switch.on::after{left:26px;background:#fff}
-  .card-row{display:flex;align-items:center;justify-content:space-between;gap:16px;
-            padding:15px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .card-row:last-child{border-bottom:none}
-</style>
   <link rel="icon" href="favicon.svg">
 </head>
 <body>
@@ -39,7 +28,6 @@
         <a href="settings.html" class="on">设置</a>
       </div>
       <div class="nav-right">
-        <span class="tag" id="modeBadge" style="background:var(--nav-h);color:var(--on-bg);border-color:transparent" title="正在检查网络…">LIVE</span>
         <button class="icon-btn" data-theme-toggle title="切换深浅主题">
           <svg data-icon-moon width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
           <svg data-icon-sun width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:block"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -72,26 +60,6 @@
 
   <!-- 模式 -->
   <section class="glass fade" style="padding:26px 30px;margin-bottom:20px">
-    <div class="card-row">
-      <div style="flex:1;min-width:240px">
-        <div style="font-size:15px;font-weight:700;margin-bottom:4px">运行模式</div>
-        <p class="small muted" style="margin:0;line-height:1.7">
-          DEMO：不调用真实模型，返回示例语料，全流程可演示。<br>
-          LIVE：通过代理层调用真实 AI（需要你的网络能连通代理地址，详见下方「测试连接」）。
-        </p>
-      </div>
-      <div class="row" style="gap:12px">
-        <span class="tag" id="modeTag">DEMO</span>
-        <div class="switch" id="swMode"></div>
-      </div>
-    </div>
-    <div class="card-row">
-      <div style="flex:1;min-width:240px">
-        <div style="font-size:15px;font-weight:700;margin-bottom:4px">当前生效模式</div>
-        <p class="small muted" style="margin:0">默认 DEMO（永远可演示）；开 LIVE 后会自动测试连通性，连不上就秒切回 DEMO。</p>
-      </div>
-      <span class="tag tag-warn" id="effTag">DEMO</span>
-    </div>
     <div class="card-row">
       <div style="flex:1;min-width:240px">
         <div style="font-size:15px;font-weight:700;margin-bottom:4px">AI 代理连通性</div>
@@ -233,11 +201,13 @@
   </div>
 </div>
 
-<script src="app.js?v=v2.0.4"></script>
+<script src="app.js?v=v2.0.5"></script>
 <script>
 App.mount('settings');
 
-const sw = $('#swMode');
+/* v2.0.5：删除运行模式开关与 DEMO/LIVE 展示。
+   AI 不可用时仍静默降级（占位数据），但不再把状态牌挂给用户看。 */
+const sw = $('#swMode');   // 已移除，保留空引用以便 load() 容错
 
 /* ══════ 载入配置 ══════ */
 function load() {
@@ -245,31 +215,9 @@ function load() {
   $('#endpoint').value = s.endpoint || '';
   $('#key').value = s.key || '';
   $('#model').value = s.model || 'deepseek-v4-flash';
-  sw.classList.toggle('on', s.mode === 'live');
-  syncTags();
 }
 
-function syncTags() {
-  const s = Store.settings.all();
-  const live = LLM.mode === 'live';
-  $('#modeTag').textContent = s.mode === 'live' ? 'LIVE（已开启）' : 'DEMO';
-  $('#modeTag').className = 'tag ' + (s.mode === 'live' ? 'tag-info' : '');
-  $('#effTag').textContent = live ? 'LIVE（代理已配置）' : 'DEMO（未配置代理）';
-  $('#effTag').className = 'tag ' + (live ? 'tag-ok' : 'tag-warn');
-  const badge = $('#modeBadge');
-  if (badge) {
-    badge.textContent = live ? 'LIVE' : 'DEMO';
-    badge.className = 'tag ' + (live ? 'tag-ok' : 'tag-warn');
-  }
-}
-
-/* ══════ 交互 ══════ */
-sw.onclick = () => {
-  const s = Store.settings.all();
-  Store.settings.set({ mode: s.mode === 'live' ? 'demo' : 'live' });
-  load();
-  Toast.show(Store.settings.all().mode === 'live' ? '已切到 LIVE，需配置代理生效' : '已切回 DEMO', 'ok');
-};
+/* v2.0.5：运行模式开关已删除，站内固定走真实 AI */
 
 $('#btnSaveCfg').onclick = () => {
   Store.settings.set({

@@ -10,7 +10,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 /* 版本标记 —— 部署后打开「设置」页底部即可看到，
    用来确认线上跑的到底是不是刚拖上去的那一版（避免拖漏 / CDN 缓存误判）。 */
-const APP_BUILD = { ver: 'v2.0.4', at: '2026-09-13', feat: '追问式复盘 Agent v2.0.4：修复「首页跳出旧版本」——HTML 响应改 no-store（Worker 层重写），css/js 引用加版本参数（部署即换 URL，旧缓存条目永久失效），页脚版本号与实际构建对齐。' };
+const APP_BUILD = { ver: 'v2.0.5', at: '2026-09-13', feat: 'v2.0.5：①把 8 页 head 里的页面级样式合并进 styles.css，修复软导航回首页时 .hero/.wk-grid 丢失导致的排版错乱（被误认为退回旧版本）；②html{scrollbar-gutter:stable} 消除切页时滚动条增减造成的左右抖动；③移除 LIVE 徽章与设置页 DEMO/LIVE 开关，AI 不可用时静默降级不再暴露状态牌；④关于页：删除 Prompt 透明墙、能力边界卡改白底（深色主题下深底深字看不见）.' };
 
 /* 说话人标签归一化：容忍 AI 回「说话人一」「Speaker 1」等写法 */
 const CN_DIGITS = { '一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9','十':'10' };
@@ -765,9 +765,6 @@ function renderNav(current) {
         ${NAV.map(n => `<a href="${n.href}"${n.key === current ? ' class="on"' : ''}>${n.label}</a>`).join('')}
       </div>
       <div class="nav-right">
-        <span class="tag" id="modeBadge"
-              style="background:var(--nav-h);color:var(--on-bg);border-color:transparent"
-              title="${safeMode === 'live' ? '已接入代理' : '未接入真实模型'}">${safeMode === 'live' ? 'LIVE' : 'DEMO'}</span>
         <button class="icon-btn" data-theme-toggle title="切换深浅主题">
           <svg data-icon-moon width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:${dark ? 'none' : 'block'}"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
           <svg data-icon-sun width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:${dark ? 'block' : 'none'}"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
