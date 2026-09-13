@@ -13,6 +13,15 @@ export default {
     if (url.pathname === '/ai' || url.pathname === '/ai/') {
       return onRequest({ request, env, params: {}, ctx });
     }
-    return env.ASSETS.fetch(request);
+    const resp = await env.ASSETS.fetch(request);
+    /* v2.0.4：HTML 一律 no-store —— 部署后浏览器绝不能再吐旧页面
+       （此前 max-age=0+must-revalidate 仍有浏览器本地旧条目不回源验证的口子）。
+       js/css 由页面以 ?v=版本号 引用，版本变了 URL 就变，天然免疫旧缓存。 */
+    if (url.pathname === '/' || url.pathname.endsWith('.html')) {
+      const r = new Response(resp.body, resp);
+      r.headers.set('Cache-Control', 'no-store, max-age=0');
+      return r;
+    }
+    return resp;
   }
 };
