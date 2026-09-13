@@ -450,3 +450,5 @@ body.soft-in > *:not(nav.navbar):not(.net-warn):not(.fade){
     border-left:none;border-top:1px solid var(--line);animation:probeUp .22s ease}
   @keyframes probeUp{from{transform:translateY(100%)}to{transform:none}}
 }
+
+/* v2.0.2 build trigger 2026-09-13：触发 CF 重新构建 */
