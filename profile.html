@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-build" content="v2.0.5">
+<meta name="app-build" content="v2.0.6">
 <title>个人中心 · 面溯</title>
-<link rel="stylesheet" href="styles.css?v=v2.0.5">
+<link rel="stylesheet" href="styles.css?v=v2.0.6">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.svg">
 </head>
@@ -103,12 +103,12 @@
     </a>
   </section>
 
-  <!-- 隐私 -->
-  <section class="glass fade" style="padding:24px 30px;background:var(--accent-soft);border-color:transparent">
+  <!-- 隐私 · v2.0.6：--accent-soft 在深色主题下是深底，叠 .muted/--tx 深字看不见 → 改白底卡片（同 about 能力边界卡修法） -->
+  <section class="glass fade" style="padding:24px 30px;background:var(--card);border-color:transparent">
     <div class="ai-head" style="color:var(--accent);margin-bottom:10px">
       <span class="ai-ico" style="background:var(--g-cool)">🔒</span>关于本地账号
     </div>
-    <ul class="small muted" style="line-height:1.85;margin:0;padding-left:18px">
+    <ul style="font-size:13.5px;line-height:1.85;color:var(--tx2);margin:0;padding-left:18px">
       <li>纯前端不存在安全的账号方案，这里<b style="color:var(--tx)">不设密码、不做鉴权</b>，昵称仅用于界面识别。</li>
       <li>昵称与投递数据都写在本机 localStorage，换设备或清缓存即失效。</li>
       <li>重要内容请在「设置 → 导出 JSON」自行备份。</li>
@@ -123,7 +123,7 @@
   </div>
 </div>
 
-<script src="app.js?v=v2.0.5"></script>
+<script src="app.js?v=v2.0.6"></script>
 <script>
 App.mount('profile');
 

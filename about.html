@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-build" content="v2.0.5">
+<meta name="app-build" content="v2.0.6">
 <title>关于项目 · 面溯</title>
-<link rel="stylesheet" href="styles.css?v=v2.0.5">
+<link rel="stylesheet" href="styles.css?v=v2.0.6">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.svg">
 </head>
@@ -57,7 +57,7 @@
     <h1 style="font-size:clamp(32px,5vw,48px);margin:8px 0 12px">关于项目</h1>
     <p class="small muted" style="max-width:620px;line-height:1.8;margin:0">
       面溯是一个面向求职者的面试复盘工具。核心命题只有一个：
-      <b style="color:var(--tx)">让一份录音同时喂饱记录、复盘、仪表盘三个模块</b>，
+      <b style="color:var(--on-bg)">让一份录音同时喂饱记录、复盘、仪表盘三个模块</b>，
       把「感觉面得不好」翻译成可追踪的字段。
     </p>
   </div>
@@ -77,7 +77,8 @@
 
   <!-- 架构决策 -->
   <section class="fade">
-    <h2 style="font-size:20px;margin:36px 0 18px">关键架构决策</h2>
+    <!-- v2.0.6：h2 无专门配色规则，会继承 body 的 --tx（深底上黑字）→ 落在页面背景上的标题必须用 on-bg -->
+    <h2 style="font-size:20px;margin:36px 0 18px;color:var(--on-bg)">关键架构决策</h2>
 
     <div class="dec">
       <div class="dec-q"><span class="dec-n">1</span>为什么不直连 DeepSeek 官方接口？</div>
@@ -171,11 +172,11 @@
 <div class="foot">
   <div class="foot-in">
     <span>面溯 · 纯静态 · 数据不出浏览器</span>
-    <span class="mono" id="aboutVer">v1.8.2</span>
+    <span class="mono" id="aboutVer">v2.0.6</span>
   </div>
 </div>
 
-<script src="app.js?v=v2.0.5"></script>
+<script src="app.js?v=v2.0.6"></script>
 <script>
 App.mount('about');
 
