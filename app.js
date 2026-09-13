@@ -10,7 +10,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 /* 版本标记 —— 部署后打开「设置」页底部即可看到，
    用来确认线上跑的到底是不是刚拖上去的那一版（避免拖漏 / CDN 缓存误判）。 */
-const APP_BUILD = { ver: 'v2.0.6', at: '2026-09-13', feat: 'v2.0.5：①把 8 页 head 里的页面级样式合并进 styles.css，修复软导航回首页时 .hero/.wk-grid 丢失导致的排版错乱（被误认为退回旧版本）；②html{scrollbar-gutter:stable} 消除切页时滚动条增减造成的左右抖动；③移除 LIVE 徽章与设置页 DEMO/LIVE 开关，AI 不可用时静默降级不再暴露状态牌；④关于页：删除 Prompt 透明墙、能力边界卡改白底（深色主题下深底深字看不见）.' };
+const APP_BUILD = { ver: 'v2.0.7', at: '2026-09-13', feat: 'v2.0.5：①把 8 页 head 里的页面级样式合并进 styles.css，修复软导航回首页时 .hero/.wk-grid 丢失导致的排版错乱（被误认为退回旧版本）；②html{scrollbar-gutter:stable} 消除切页时滚动条增减造成的左右抖动；③移除 LIVE 徽章与设置页 DEMO/LIVE 开关，AI 不可用时静默降级不再暴露状态牌；④关于页：删除 Prompt 透明墙、能力边界卡改白底（深色主题下深底深字看不见）.' };
 
 /* 说话人标签归一化：容忍 AI 回「说话人一」「Speaker 1」等写法 */
 const CN_DIGITS = { '一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9','十':'10' };
@@ -1194,8 +1194,10 @@ const Agent = {
       { role: 'user', content: `已填写的字段（非空才列出，写 draft 时可参考）：\n${filled || '（暂无）'}` }
     ];
     const r = await Agent._attempt(messages, d => Agent.validateProbe(d, transcript), { temperature: 0.7 });
-    if (r.ok) { Agent._log(jobId, 'probe', true, '', t0, messages); return { ...r.data, fallback: false, demo: false }; }
-    if (r.attempted) Agent._log(jobId, 'probe', false, r.err, t0, messages);
+    /* v2.0.7：原调用漏传第 7 个参数 rawOut → 日志里 probe/thread 的 tokOut 恒为 0，
+       token 统计只有一半。现在和 converge 一样把 r.raw 传进去。 */
+    if (r.ok) { Agent._log(jobId, 'probe', true, '', t0, messages, r.raw); return { ...r.data, fallback: false, demo: false }; }
+    if (r.attempted) Agent._log(jobId, 'probe', false, r.err, t0, messages, r.raw);
     /* 层 5 兜底：用逐字稿真实句子构造占位追问，流程永不白屏 */
     Agent._logDemo(jobId, 'probe', r.attempted ? '降级 DEMO 占位数据' : 'DEMO 模式');
     return { ...Agent.demoProbe(transcript, stuck), fallback: true, demo: true };
@@ -1216,8 +1218,8 @@ const Agent = {
       { role: 'user', content: '请输出 1 个新的追问 JSON。' }
     ];
     const r = await Agent._attempt(messages, d => Agent.validateSwap(d, transcript), { temperature: 0.7 });
-    if (r.ok) { Agent._log(jobId, 'thread', true, '', t0, messages); return { probe: r.data, fallback: false, demo: false }; }
-    if (r.attempted) Agent._log(jobId, 'thread', false, r.err, t0, messages);
+    if (r.ok) { Agent._log(jobId, 'thread', true, '', t0, messages, r.raw); return { probe: r.data, fallback: false, demo: false }; }
+    if (r.attempted) Agent._log(jobId, 'thread', false, r.err, t0, messages, r.raw);
     Agent._logDemo(jobId, 'thread', r.attempted ? '降级 DEMO 占位数据' : 'DEMO 模式');
     return { probe: Agent.demoSwap(transcript, stuck, existing), fallback: true, demo: true };
   },
