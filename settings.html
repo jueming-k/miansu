@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-build" content="v2.0.7">
+<meta name="app-build" content="v2.0.8">
 <title>设置 · 面溯</title>
-<link rel="stylesheet" href="styles.css?v=v2.0.7">
+<link rel="stylesheet" href="styles.css?v=v2.0.8">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.svg">
 </head>
@@ -122,6 +122,7 @@
         </p>
       </div>
       <div class="row" style="gap:10px">
+        <button class="btn btn-ghost btn-sm" id="btnLogClear">清空记录</button>
         <button class="btn btn-ghost btn-sm" id="btnLogExport">导出 JSON</button>
       </div>
     </div>
@@ -201,7 +202,7 @@
   </div>
 </div>
 
-<script src="app.js?v=v2.0.7"></script>
+<script src="app.js?v=v2.0.8"></script>
 <script>
 App.mount('settings');
 
@@ -382,6 +383,16 @@ $('#btnLogExport').onclick = () => {
   a.download = `面溯-AI调用记录-${today()}.json`;
   a.click();
   Toast.show('已导出', 'ok');
+};
+
+/* v2.0.8：「清空全部数据」按设计不清 agentlog（观测日志只增不改），
+   但页面上一直没给单独的清空入口 —— 补上。 */
+$('#btnLogClear').onclick = () => {
+  if (!Store.agentlog.all().length) { Toast.show('还没有调用记录', 'warn'); return; }
+  if (!confirm('确认清空全部 AI 调用记录？导出统计前请先导出 JSON 备份。')) return;
+  Store.agentlog.clear();
+  renderLog(); usage();
+  Toast.show('已清空调用记录', 'ok');
 };
 
 renderLog();

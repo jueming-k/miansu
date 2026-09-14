@@ -10,7 +10,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 /* 版本标记 —— 部署后打开「设置」页底部即可看到，
    用来确认线上跑的到底是不是刚拖上去的那一版（避免拖漏 / CDN 缓存误判）。 */
-const APP_BUILD = { ver: 'v2.0.7', at: '2026-09-13', feat: 'v2.0.5：①把 8 页 head 里的页面级样式合并进 styles.css，修复软导航回首页时 .hero/.wk-grid 丢失导致的排版错乱（被误认为退回旧版本）；②html{scrollbar-gutter:stable} 消除切页时滚动条增减造成的左右抖动；③移除 LIVE 徽章与设置页 DEMO/LIVE 开关，AI 不可用时静默降级不再暴露状态牌；④关于页：删除 Prompt 透明墙、能力边界卡改白底（深色主题下深底深字看不见）.' };
+const APP_BUILD = { ver: 'v2.0.8', at: '2026-09-13', feat: 'v2.0.5：①把 8 页 head 里的页面级样式合并进 styles.css，修复软导航回首页时 .hero/.wk-grid 丢失导致的排版错乱（被误认为退回旧版本）；②html{scrollbar-gutter:stable} 消除切页时滚动条增减造成的左右抖动；③移除 LIVE 徽章与设置页 DEMO/LIVE 开关，AI 不可用时静默降级不再暴露状态牌；④关于页：删除 Prompt 透明墙、能力边界卡改白底（深色主题下深底深字看不见）.' };
 
 /* 说话人标签归一化：容忍 AI 回「说话人一」「Speaker 1」等写法 */
 const CN_DIGITS = { '一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9','十':'10' };
@@ -1068,12 +1068,18 @@ const Agent = {
     return { raw, data, ok: !!validate(data) };
   },
 
+  /* v2.0.8：日志时间戳改本地时间。原 toISOString 是 UTC，中国用户看到的时间差 8 小时。 */
+  _now() {
+    const d = new Date(), p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  },
+
   /* ── 可观测日志（token 为估算值）── */
   _log(jobId, stage, ok, err, t0, tokInSrc, rawOut = '') {
     const s = Store.settings.all();
     const est = t => Math.ceil((typeof t === 'string' ? t : JSON.stringify(t)).length / 2);
     Store.agentlog.add({
-      ts: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      ts: Agent._now(),
       jobId, stage,
       model: (LLM.mode === 'live') ? (s.model || '') : 'demo',
       ms: Date.now() - t0,
@@ -1084,7 +1090,7 @@ const Agent = {
   },
   _logDemo(jobId, stage, note) {
     Store.agentlog.add({
-      ts: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      ts: Agent._now(),
       jobId, stage, model: 'demo', ms: 0, tokIn: 0, tokOut: 0, ok: true,
       err: String(note || '').slice(0, 120)
     });
